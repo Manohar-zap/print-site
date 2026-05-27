@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<title>Printhub Desktop</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0a0a0a;--white:#fafaf8;--blue:#1a6bff;--blue-d:#0f4db8;
+  --green:#00e67a;--red:#ff4444;--amber:#ffaa00;
+  --gray:#8a8a8a;--border:#1e1e1e;--surf:#111;--surf2:#161616;
+  --font-h:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--black);color:var(--white);font-family:var(--font-b);font-size:13px;display:flex;flex-direction:column}
+button{cursor:pointer;font-family:var(--font-b)}
+
+/* ── TITLEBAR ─────────────────────────────────────────── */
+.titlebar{height:36px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;-webkit-app-region:drag;flex-shrink:0}
+.titlebar-logo{font-family:var(--font-h);font-size:14px;font-weight:800}
+.titlebar-logo span{color:var(--blue)}
+.titlebar-shop{font-size:12px;color:var(--gray)}
+.titlebar-right{margin-left:auto;display:flex;align-items:center;gap:8px;-webkit-app-region:no-drag}
+.rt-dot{width:7px;height:7px;border-radius:50%;background:var(--gray)}
+.rt-dot.connected{background:var(--green);box-shadow:0 0 6px rgba(0,230,122,.5);animation:rtPulse 2s infinite}
+@keyframes rtPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+.shell{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ──────────────────────────────────────────── */
+.sidebar{width:180px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:3px}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;background:transparent;color:var(--gray);font-size:12px;font-weight:500;border-radius:8px;width:100%;text-align:left;transition:all .2s;font-family:var(--font-b)}
+.sb-btn:hover{background:var(--surf2);color:var(--white)}
+.sb-btn.active{background:rgba(26,107,255,.1);color:var(--blue)}
+.sb-btn .ic{font-size:15px;width:18px;text-align:center}
+.sb-badge{background:var(--red);color:#fff;border-radius:100px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto}
+.sb-footer{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.ap-pill{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:8px}
+.ap-dot{width:6px;height:6px;border-radius:50%;background:var(--gray);flex-shrink:0}
+.ap-dot.on{background:var(--green)}
+.tgl{position:relative;width:36px;height:20px;flex-shrink:0;margin-left:auto}
+.tgl input{opacity:0;position:absolute}
+.tgl-t{position:absolute;inset:0;background:var(--border);border-radius:100px;cursor:pointer;transition:background .2s}
+.tgl-t::before{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.tgl input:checked + .tgl-t{background:var(--green)}
+.tgl input:checked + .tgl-t::before{transform:translateX(16px)}
+
+/* ── MAIN ─────────────────────────────────────────────── */
+.main{flex:1;overflow-y:auto;padding:20px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-family:var(--font-h);font-size:18px;font-weight:700;margin-bottom:16px}
+
+/* ── LOGIN ────────────────────────────────────────────── */
+#page-login{display:flex;align-items:center;justify-content:center;min-height:100%;padding:20px}
+.login-box{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:360px}
+.login-logo{font-family:var(--font-h);font-size:20px;font-weight:800;margin-bottom:4px}
+.login-logo span{color:var(--blue)}
+.login-sub{font-size:12px;color:var(--gray);margin-bottom:24px}
+.fl{margin-bottom:12px}
+.fl label{font-size:11px;color:var(--gray);font-weight:500;display:block;margin-bottom:5px}
+.fi{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-size:13px;outline:none;transition:border-color .2s;font-family:var(--font-b)}
+.fi:focus{border-color:var(--blue)}
+.fi::placeholder{color:var(--gray)}
+
+/* ── BUTTONS ──────────────────────────────────────────── */
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-family:var(--font-b)}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-d)}
+.btn-g{background:var(--surf2);color:var(--gray);border:1px solid var(--border)}.btn-g:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
+.btn-ok{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2)}.btn-ok:hover{background:rgba(0,230,122,.2)}
+.btn-warn{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
+.btn-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}.btn-err:hover{background:rgba(255,68,68,.2)}
+.btn-full{width:100%;justify-content:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── STATS ────────────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.sc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px}
+.sc-l{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.sc-v{font-family:var(--font-h);font-size:22px;font-weight:700}
+.sc-s{font-size:10px;color:var(--gray);margin-top:2px}
+
+/* ── QUEUE ────────────────────────────────────────────── */
+.queue-list{display:flex;flex-direction:column;gap:8px}
+.qc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;transition:border-color .2s}
+.qc.priority::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber)}
+.qc.printing{border-color:rgba(0,230,122,.3)}
+.qc-token{font-family:var(--font-h);font-size:22px;font-weight:800;color:var(--blue);min-width:46px}
+.qc-info{flex:1;min-width:0}
+.qc-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.qc-meta{font-size:11px;color:var(--gray);display:flex;gap:6px;flex-wrap:wrap}
+.qc-acts{display:flex;gap:6px;flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600}
+.b-w{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
+.b-d{background:rgba(26,107,255,.1);color:var(--blue);border:1px solid rgba(26,107,255,.2)}
+.b-p{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2);animation:blink 1.2s infinite}
+.b-done{background:rgba(0,230,122,.06);color:var(--green);border:1px solid rgba(0,230,122,.12)}
+.b-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.b-skip{background:rgba(255,255,255,.04);color:var(--gray);border:1px solid var(--border)}
+.b-pri{background:rgba(255,170,0,.12);color:var(--amber);border:1px solid rgba(255,170,0,.25);font-size:9px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.empty-q{text-align:center;padding:48px 20px;color:var(--gray)}
+.empty-q .ei{font-size:36px;margin-bottom:10px}
+
+/* ── PRINTER SELECT ───────────────────────────────────── */
+.select{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:12px;outline:none;font-family:var(--font-b);width:100%}
+
+/* ── HISTORY ──────────────────────────────────────────── */
+.hist-table{width:100%;border-collapse:collapse;font-size:12px}
+.hist-table th{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.hist-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
+.hist-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── SETTINGS ─────────────────────────────────────────── */
+.settings-section{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px}
+.settings-section h4{font-family:var(--font-h);font-size:13px;font-weight:700;margin-bottom:14px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.setting-row:last-child{border-bottom:none}
+.setting-row label{font-size:12px;color:var(--gray)}
+
+/* ── TOAST ────────────────────────────────────────────── */
+#toasts{position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:12px;min-width:220px;animation:tIn .25s ease;display:flex;align-items:center;gap:8px}
+.toast.ok{border-color:rgba(0,230,122,.35)}.toast.err{border-color:rgba(255,68,68,.35)}.toast.inf{border-color:rgba(26,107,255,.35)}
+@keyframes tIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <div class="titlebar-logo">Print<span>hub</span></div>
+  <div class="titlebar-shop" id="tb-shop">Not connected</div>
+  <div class="titlebar-right">
+    <div class="rt-dot" id="rt-dot" title="Realtime connection"></div>
+    <span style="font-size:11px;color:var(--gray)" id="rt-label">Offline</span>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar" style="display:none">
+  <div class="sb-nav">
+    <button class="sb-btn active" onclick="showPage('queue')" id="nav-queue"><span class="ic">🖨</span>Queue<span class="sb-badge hidden" id="q-badge">0</span></button>
+    <button class="sb-btn" onclick="showPage('history')" id="nav-history"><span class="ic">📋</span>History</button>
+    <button class="sb-btn" onclick="showPage('settings')" id="nav-settings"><span class="ic">⚙️</span>Settings</button>
+  </div>
+  <div class="sb-footer">
+    <div class="ap-pill">
+      <div class="ap-dot" id="ap-dot"></div>
+      <span id="ap-lbl" style="font-size:11px;color:var(--gray)">Auto-print</span>
+      <label class="tgl">
+        <input type="checkbox" id="ap-toggle" onchange="toggleAP(this.checked)"/>
+        <div class="tgl-t"></div>
+      </label>
+    </div>
+    <select class="select" onchange="setShopStatus(this.value)" id="status-sel">
+      <option value="open">🟢 Open</option>
+      <option value="busy">🟡 Busy</option>
+      <option value="paused">⏸ Paused</option>
+      <option value="offline">🔴 Offline</option>
+    </select>
+    <button class="btn btn-g btn-full" style="font-size:11px" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LOGIN -->
+  <div id="page-login" class="page active" style="display:flex">
+    <div class="login-box">
+      <div class="login-logo">Print<span>hub</span></div>
+      <div class="login-sub">Shop owner desktop app — sign in to start auto-printing</div>
+      <div class="fl"><label>Email</label><input class="fi" type="email" id="l-email" placeholder="owner@shop.com"/></div>
+      <div class="fl"><label>Password</label><input class="fi" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/></div>
+      <button class="btn btn-p btn-full" style="margin-top:4px" onclick="login()">Login & connect →</button>
+      <p style="margin-top:12px;font-size:11px;color:var(--gray);text-align:center">Runs silently in your system tray after login</p>
+    </div>
+  </div>
+
+  <!-- QUEUE -->
+  <div id="page-queue" class="page">
+    <div class="page-title">Live Print Queue</div>
+    <div class="stats-row">
+      <div class="sc"><div class="sc-l">Waiting</div><div class="sc-v" id="st-waiting">0</div><div class="sc-s">in queue</div></div>
+      <div class="sc"><div class="sc-l">Printed today</div><div class="sc-v" id="st-done">0</div><div class="sc-s">completed</div></div>
+      <div class="sc"><div class="sc-l">Failed</div><div class="sc-v" id="st-failed" style="color:var(--red)">0</div><div class="sc-s">need retry</div></div>
+      <div class="sc"><div class="sc-l">Printer</div><div class="sc-v" id="st-printer" style="font-size:12px;padding-top:4px">—</div><div class="sc-s">active</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <strong style="font-size:13px;font-family:var(--font-h)">Jobs</strong>
+      <button class="btn btn-g" style="font-size:11px" onclick="refreshQueue()">↻ Refresh</button>
+    </div>
+    <div class="queue-list" id="queue-list">
+      <div class="empty-q"><div class="ei">✅</div><p>Queue is empty — new jobs appear here automatically</p></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="page-history" class="page">
+    <div class="page-title">Print History</div>
+    <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="hist-table">
+        <thead><tr><th>Token</th><th>File</th><th>Copies</th><th>Color</th><th>Status</th><th>Retries</th><th>Time</th></tr></thead>
+        <tbody id="hist-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">No history yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="page-title">Settings</div>
+
+    <div class="settings-section">
+      <h4>Default Printer</h4>
+      <div class="fl">
+        <label>Select printer</label>
+        <select class="select" id="printer-select" onchange="window.ph.setDefaultPrinter(this.value).then(()=>toast('Default printer saved','ok'))">
+          <option value="">Loading printers…</option>
+        </select>
+      </div>
+      <button class="btn btn-g" style="font-size:11px;margin-top:6px" onclick="loadPrinters()">↻ Refresh printer list</button>
+    </div>
+
+    <div class="settings-section">
+      <h4>Auto-print</h4>
+      <div class="setting-row">
+        <label>Enable auto-print on new job</label>
+        <label class="tgl"><input type="checkbox" id="s-autoprint" onchange="saveSetting('autoPrint',this.checked)"/><div class="tgl-t"></div></label>
+      </div>
+      <div class="setting-row">
+        <label>Show desktop notification per job</label>
+        <label class="tgl"><input type="checkbox" id="s-notif" onchange="saveSetting('notifications',this.checked)"/><div class="tgl-t"></div></label>
+      </div>
+      <div class="setting-row">
+        <label>Delete temp file after print</label>
+        <label class="tgl"><input type="checkbox" id="s-delete" onchange="saveSetting('deleteTempAfterPrint',this.checked)"/><div class="tgl-t"></div></label>
+      </div>
+      <div class="setting-row">
+        <label>Max auto-retries per job</label>
+        <select class="select" style="width:80px" id="s-retries" onchange="saveSetting('maxRetries',parseInt(this.value))">
+          <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h4>About</h4>
+      <div class="setting-row"><label>App version</label><span style="color:var(--gray)">1.0.0</span></div>
+      <div class="setting-row"><label>Platform</label><span style="color:var(--gray)" id="s-platform">—</span></div>
+      <div class="setting-row">
+        <label>Temp / log folder</label>
+        <button class="btn btn-g" style="font-size:11px" onclick="window.ph.openLogs()">Open folder</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+let queueJobs = [];
+let doneCount = 0;
+let failedCount = 0;
+
+// ── UTILS ──────────────────────────────────────────────────
+function toast(msg, type = 'inf') {
+  const ic = {ok:'✓',err:'✕',inf:'ℹ'};
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${ic[type]}</span>${msg}`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  const pg = document.getElementById(`page-${name}`);
+  pg.style.display = 'block';
+  pg.classList.add('active');
+  document.getElementById(`nav-${name}`)?.classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'settings') loadSettings();
+}
+
+function timeAgo(ts) {
+  const d = (Date.now() - ts) / 1000;
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d/60)+'m ago';
+  return Math.floor(d/3600)+'h ago';
+}
+
+// ── LOGIN ──────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!email || !pass) return toast('Fill in all fields', 'err');
+  toast('Connecting…', 'inf');
+  const res = await window.ph.login({ email, password: pass });
+  if (!res.ok) return toast(res.error, 'err');
+  onLoggedIn(res.shop);
+}
+
+function onLoggedIn(shop) {
+  document.getElementById('tb-shop').textContent = shop.name;
+  document.getElementById('status-sel').value = shop.status;
+  const ap = shop.auto_print;
+  document.getElementById('ap-toggle').checked = ap;
+  document.getElementById('ap-dot').className = 'ap-dot' + (ap ? ' on' : '');
+  document.getElementById('ap-lbl').textContent = ap ? 'Auto ON' : 'Auto OFF';
+
+  document.getElementById('page-login').style.display = 'none';
+  document.getElementById('page-login').classList.remove('active');
+  document.getElementById('sidebar').style.display = 'flex';
+  showPage('queue');
+
+  loadPrinters();
+  refreshQueue();
+  toast(`Connected to ${shop.name}`, 'ok');
+}
+
+async function logout() {
+  await window.ph.logout();
+  document.getElementById('sidebar').style.display = 'none';
+  document.getElementById('page-login').style.display = 'flex';
+  document.getElementById('page-login').classList.add('active');
+  document.getElementById('tb-shop').textContent = 'Not connected';
+  queueJobs = [];
+  renderQueue();
+}
+
+// ── QUEUE ──────────────────────────────────────────────────
+async function refreshQueue() {
+  queueJobs = await window.ph.getQueue();
+  renderQueue();
+  updateStats();
+}
+
+function renderQueue() {
+  const el = document.getElementById('queue-list');
+  const active = queueJobs.filter(j => !['done','skipped'].includes(j.state));
+  if (!active.length) {
+    el.innerHTML = '<div class="empty-q"><div class="ei">✅</div><p>Queue is empty — new jobs appear automatically</p></div>';
+    return;
+  }
+  el.innerHTML = '';
+  active.forEach(job => {
+    const badgeClass = {waiting:'b-w',downloading:'b-d',printing:'b-p',done:'b-done',failed:'b-err',skipped:'b-skip'}[job.state] || 'b-w';
+    const card = document.createElement('div');
+    card.className = 'qc' + (job.isPriority ? ' priority' : '') + (job.state === 'printing' ? ' printing' : '');
+    card.innerHTML = `
+      <div class="qc-token">${job.token || '—'}</div>
+      <div class="qc-info">
+        <div class="qc-name">${job.isPriority ? '<span class="badge b-pri">⚡PRIORITY</span> ' : ''}${job.file_name}</div>
+        <div class="qc-meta">
+          <span>${job.copies} cop${job.copies>1?'ies':'y'}</span>
+          <span>·</span><span>${job.colorMode === 'bw' ? 'B&W' : 'Colour'}</span>
+          <span>·</span><span>${job.paperSize}</span>
+          <span>·</span><span>${timeAgo(job.addedAt)}</span>
+          ${job.retries > 0 ? `<span>·</span><span style="color:var(--amber)">Retry ${job.retries}/${job.maxRetries}</span>` : ''}
+        </div>
+      </div>
+      <span class="badge ${badgeClass}">${job.state}</span>
+      <div class="qc-acts">
+        ${job.state === 'waiting' ? `<button class="btn btn-ok" style="font-size:11px" onclick="printNow('${job.orderId}')">🖨 Print</button>` : ''}
+        ${job.state === 'failed' && job.retries < job.maxRetries ? `<button class="btn btn-warn" style="font-size:11px" onclick="retryJob('${job.orderId}')">↻ Retry</button>` : ''}
+        ${job.state === 'failed' && job.retries >= job.maxRetries ? `<span style="font-size:11px;color:var(--red)">Max retries</span>` : ''}
+        ${['waiting','failed'].includes(job.state) ? `<button class="btn btn-g" style="font-size:11px" onclick="skipJob('${job.orderId}')">Skip</button>` : ''}
+      </div>
+    `;
+    el.appendChild(card);
+  });
+
+  // Update badge
+  const waiting = active.filter(j => j.state === 'waiting').length;
+  const badge = document.getElementById('q-badge');
+  badge.textContent = waiting;
+  badge.classList.toggle('hidden', waiting === 0);
+}
+
+function updateStats() {
+  const active = queueJobs.filter(j => j.state === 'waiting').length;
+  doneCount = queueJobs.filter(j => j.state === 'done').length;
+  failedCount = queueJobs.filter(j => j.state === 'failed').length;
+  document.getElementById('st-waiting').textContent = active;
+  document.getElementById('st-done').textContent = doneCount;
+  document.getElementById('st-failed').textContent = failedCount;
+}
+
+async function printNow(orderId) {
+  toast('Sending to printer…', 'inf');
+  const res = await window.ph.printNow(orderId);
+  if (!res.ok) toast(res.error, 'err');
+  setTimeout(refreshQueue, 1000);
+}
+
+async function skipJob(orderId) {
+  await window.ph.skipJob(orderId);
+  await refreshQueue();
+  toast('Job skipped', 'inf');
+}
+
+async function retryJob(orderId) {
+  const res = await window.ph.retryJob(orderId);
+  if (!res.ok) return toast(res.error, 'err');
+  toast('Job re-queued', 'ok');
+  await refreshQueue();
+}
+
+// ── HISTORY ───────────────────────────────────────────────
+function renderHistory() {
+  const done = queueJobs.filter(j => j.state === 'done' || j.state === 'failed' || j.state === 'skipped');
+  const tbody = document.getElementById('hist-body');
+  if (!done.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray)">No completed jobs yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = done.slice().reverse().map(j => `
+    <tr>
+      <td><strong style="color:var(--blue);font-family:var(--font-h)">${j.token||'—'}</strong></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.file_name}</td>
+      <td>${j.copies}</td>
+      <td>${j.colorMode === 'bw' ? 'B&W' : 'Colour'}</td>
+      <td><span class="badge ${{done:'b-done',failed:'b-err',skipped:'b-skip'}[j.state]||'b-w'}">${j.state}</span></td>
+      <td style="color:var(--gray)">${j.retries}/${j.maxRetries}</td>
+      <td style="color:var(--gray)">${timeAgo(j.addedAt)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── PRINTERS ──────────────────────────────────────────────
+async function loadPrinters() {
+  const printers = await window.ph.listPrinters();
+  const sel = document.getElementById('printer-select');
+  const def = await window.ph.getDefaultPrinter();
+  sel.innerHTML = '<option value="">Select a printer…</option>' +
+    printers.map(p => `<option value="${p.name}" ${p.name === def ? 'selected' : ''}>${p.name} (${p.status})</option>`).join('');
+  document.getElementById('st-printer').textContent = def || '—';
+}
+
+// ── SETTINGS ──────────────────────────────────────────────
+async function loadSettings() {
+  const s = await window.ph.getSettings();
+  document.getElementById('s-autoprint').checked = s.autoPrint ?? true;
+  document.getElementById('s-notif').checked = s.notifications ?? true;
+  document.getElementById('s-delete').checked = s.deleteTempAfterPrint ?? true;
+  document.getElementById('s-retries').value = s.maxRetries ?? 3;
+  document.getElementById('s-platform').textContent = navigator.platform;
+}
+
+async function saveSetting(key, val) {
+  const s = await window.ph.getSettings();
+  s[key] = val;
+  await window.ph.saveSettings(s);
+  toast('Setting saved', 'ok');
+}
+
+async function toggleAP(val) {
+  await window.ph.setAutoPrint(val);
+  document.getElementById('ap-dot').className = 'ap-dot' + (val ? ' on' : '');
+  document.getElementById('ap-lbl').textContent = val ? 'Auto ON' : 'Auto OFF';
+  toast(val ? 'Auto-print enabled' : 'Auto-print paused', 'ok');
+}
+
+async function setShopStatus(status) {
+  await window.ph.setShopStatus(status);
+  toast(`Shop status → ${status}`, 'ok');
+}
+
+// ── EVENTS FROM MAIN ───────────────────────────────────────
+window.ph.on('shop-loaded', (shop) => onLoggedIn(shop));
+
+window.ph.on('new-order', (order) => {
+  toast(`New order ${order.token}: ${order.file_name}`, 'ok');
+  refreshQueue();
+});
+
+window.ph.on('queue-changed', (jobs) => {
+  queueJobs = jobs;
+  renderQueue();
+  updateStats();
+});
+
+window.ph.on('job-start', (job) => {
+  toast(`🖨 Printing ${job.token}…`, 'inf');
+  refreshQueue();
+});
+
+window.ph.on('job-done', (job) => {
+  toast(`✓ Done: ${job.token}`, 'ok');
+  refreshQueue();
+});
+
+window.ph.on('job-failed', ({ job, error }) => {
+  toast(`✕ Failed ${job.token}: ${error}`, 'err');
+  refreshQueue();
+});
+
+window.ph.on('realtime-status', (status) => {
+  const connected = status === 'SUBSCRIBED';
+  document.getElementById('rt-dot').className = 'rt-dot' + (connected ? ' connected' : '');
+  document.getElementById('rt-label').textContent = connected ? 'Live' : 'Offline';
+});
+
+window.ph.on('nav', (page) => showPage(page));
+
+// ── AUTO-LOGIN ─────────────────────────────────────────────
+(async () => {
+  const saved = await window.ph.getSavedCreds();
+  if (saved) {
+    toast('Auto-connecting…', 'inf');
+    const res = await window.ph.login({ email: saved.email, password: saved.password });
+    if (res.ok) onLoggedIn(res.shop);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+printhub-electron/node_modules/
+
+# Builds / Output
+dist/
+printhub-electron/dist/
+
+# Local Environment / System files
+.env
+.DS_Store
+Thumbs.db

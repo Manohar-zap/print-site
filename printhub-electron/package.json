@@ -1,0 +1,61 @@
+{
+  "name": "printhub-desktop",
+  "version": "1.0.0",
+  "description": "Printhub Shop Desktop App — Auto-print service",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
+    "express": "^5.2.1",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^2.7.0",
+    "node-notifier": "^10.0.1",
+    "pdf-to-printer": "^5.5.1",
+    "tmp": "^0.2.3",
+    "ws": "^8.20.1"
+  },
+  "devDependencies": {
+    "electron": "^30.0.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.printhub.desktop",
+    "productName": "Printhub",
+    "copyright": "© 2025 Printhub",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

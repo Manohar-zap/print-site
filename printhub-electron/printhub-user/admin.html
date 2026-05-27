@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Printhub — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0a0a0a;--white:#fafaf8;--blue:#1a6bff;--blue-d:#0f4db8;
+  --green:#00e67a;--red:#ff4444;--amber:#ffaa00;--purple:#8b5cf6;
+  --gray:#8a8a8a;--border:#1e1e1e;--surf:#111;--surf2:#161616;
+  --font-h:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+}
+body{background:var(--black);color:var(--white);font-family:var(--font-b);font-size:14px;min-height:100vh}
+button{cursor:pointer;font-family:var(--font-b)}
+.hidden{display:none!important}
+#toasts{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;min-width:240px;animation:tIn .25s ease;display:flex;align-items:center;gap:8px;pointer-events:all}
+.toast.ok{border-color:rgba(0,230,122,.4)}.toast.err{border-color:rgba(255,68,68,.4)}.toast.inf{border-color:rgba(26,107,255,.4)}
+@keyframes tIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:20px;padding:36px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-x{position:absolute;top:16px;right:16px;background:var(--surf2);border:1px solid var(--border);color:var(--gray);width:30px;height:30px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-x:hover{color:var(--white)}
+.modal-title{font-family:var(--font-h);font-size:18px;font-weight:700;margin-bottom:20px}
+.btn{padding:9px 18px;border-radius:9px;font-size:13px;font-weight:500;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--font-b)}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-d)}
+.btn-g{background:var(--surf2);color:var(--gray);border:1px solid var(--border)}.btn-g:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
+.btn-ok{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.25)}.btn-ok:hover{background:rgba(0,230,122,.2)}
+.btn-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.25)}.btn-err:hover{background:rgba(255,68,68,.2)}
+.btn-warn{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.25)}
+.btn-full{width:100%;justify-content:center}
+.btn-sm{padding:6px 12px;font-size:12px}
+.fl{margin-bottom:14px}
+.fl label{font-size:12px;color:var(--gray);font-weight:500;display:block;margin-bottom:6px}
+.fi{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--white);font-size:13px;outline:none;transition:border-color .2s;font-family:var(--font-b)}
+.fi:focus{border-color:var(--blue)}
+.fi::placeholder{color:var(--gray)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.b-open{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.25)}
+.b-busy{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.25)}
+.b-paused,.b-offline{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.25)}
+.b-completed{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2)}
+.b-printing,.b-queued,.b-paid{background:rgba(26,107,255,.08);color:var(--blue);border:1px solid rgba(26,107,255,.2)}
+.b-pending{background:rgba(255,170,0,.08);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
+.b-failed,.b-cancelled{background:rgba(255,68,68,.08);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.b-customer{background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.25)}
+.b-owner{background:rgba(26,107,255,.1);color:var(--blue);border:1px solid rgba(26,107,255,.25)}
+.b-admin{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.25)}
+/* LOGIN */
+#screen-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:var(--surf);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px}
+.login-logo{font-family:var(--font-h);font-size:24px;font-weight:800;margin-bottom:6px}
+.login-logo span{color:var(--blue)}
+.login-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.25);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--amber);margin-bottom:24px;font-weight:500}
+/* SHELL */
+#screen-app{display:none;min-height:100vh}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border)}
+.sb-logo-txt{font-family:var(--font-h);font-size:18px;font-weight:800}
+.sb-logo-txt span{color:var(--blue)}
+.sb-logo-badge{font-size:10px;background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px;font-weight:600}
+.sb-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:3px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:var(--gray);font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;width:100%;text-align:left;transition:all .2s;font-family:var(--font-b)}
+.sb-item:hover{background:var(--surf2);color:var(--white)}
+.sb-item.active{background:rgba(26,107,255,.1);color:var(--blue)}
+.sb-item .ic{font-size:15px;width:20px;text-align:center}
+.sb-sec{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;font-weight:600}
+.sb-footer{padding:14px 10px;border-top:1px solid var(--border)}
+.main{margin-left:220px;flex:1;padding:28px;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-title{font-family:var(--font-h);font-size:22px;font-weight:700}
+.page-sub{font-size:13px;color:var(--gray);margin-top:2px}
+.page{display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:20px}
+.sc-icon{font-size:22px;margin-bottom:8px}
+.sc-label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
+.sc-value{font-family:var(--font-h);font-size:24px;font-weight:700}
+.sc-sub{font-size:11px;color:var(--gray);margin-top:4px}
+.table-wrap{background:var(--surf);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);font-weight:600}
+.data-table td{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
+.table-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.table-hdr h3{font-family:var(--font-h);font-size:14px;font-weight:700}
+.tabs{display:flex;gap:3px;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:3px;width:fit-content}
+.tab{padding:6px 14px;border:none;background:transparent;color:var(--gray);font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .2s;font-family:var(--font-b)}
+.tab.active{background:var(--blue);color:#fff}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:20px}
+.chart-title{font-family:var(--font-h);font-size:13px;font-weight:700;margin-bottom:4px}
+.chart-sub{font-size:11px;color:var(--gray);margin-bottom:14px}
+.bar-chart{display:flex;align-items:flex-end;gap:4px;height:90px}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px}
+.bar{background:var(--blue);border-radius:3px 3px 0 0;width:100%;min-height:3px;transition:height .5s ease;opacity:.8}
+.bar:hover{opacity:1}
+.bar.green{background:var(--green)}.bar.amber{background:var(--amber)}
+.bar-lbl{font-size:9px;color:var(--gray);text-align:center}
+.bar-val{font-size:9px;color:var(--gray);font-weight:600;text-align:center}
+.rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.rev-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center}
+.rev-num{font-family:var(--font-h);font-size:26px;font-weight:700;margin-bottom:4px}
+.rev-lbl{font-size:12px;color:var(--gray)}
+.search-bar{background:var(--surf2);border:1px solid var(--border);border-radius:9px;padding:8px 14px;color:var(--white);font-size:13px;outline:none;font-family:var(--font-b);width:220px;transition:border-color .2s}
+.search-bar:focus{border-color:var(--blue)}
+.search-bar::placeholder{color:var(--gray)}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-key{color:var(--gray);flex-shrink:0;margin-right:16px}
+.detail-val{font-weight:500;text-align:right;word-break:break-all}
+.empty{text-align:center;padding:48px 20px;color:var(--gray)}
+@media(max-width:1100px){.stats-grid{grid-template-columns:1fr 1fr}.charts-grid{grid-template-columns:1fr}.rev-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.sidebar{width:56px}.sb-item span:not(.ic){display:none}.sb-logo-txt,.sb-logo-badge,.sb-sec{display:none}.main{margin-left:56px;padding:16px}.stats-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<!-- MODALS -->
+<div class="overlay hidden" id="order-modal">
+  <div class="modal"><button class="modal-x" onclick="closeModal('order-modal')">&#x2715;</button>
+  <div class="modal-title" id="om-title">Order</div><div id="om-body"></div></div>
+</div>
+<div class="overlay hidden" id="shop-modal">
+  <div class="modal"><button class="modal-x" onclick="closeModal('shop-modal')">&#x2715;</button>
+  <div class="modal-title" id="sm-title">Shop</div><div id="sm-body"></div></div>
+</div>
+<div class="overlay hidden" id="user-modal">
+  <div class="modal"><button class="modal-x" onclick="closeModal('user-modal')">&#x2715;</button>
+  <div class="modal-title" id="um-title">User</div><div id="um-body"></div></div>
+</div>
+<div class="overlay hidden" id="create-shop-modal">
+  <div class="modal"><button class="modal-x" onclick="closeModal('create-shop-modal')">&#x2715;</button>
+  <div class="modal-title">Register new shop</div>
+  <div class="fl"><label>Owner email (must already be registered)</label><input class="fi" id="cs-email" placeholder="owner@shop.com"/></div>
+  <div class="fl"><label>Shop name</label><input class="fi" id="cs-name" placeholder="Copy King MG Road"/></div>
+  <div class="fl"><label>Address</label><input class="fi" id="cs-address" placeholder="Full address"/></div>
+  <div class="fl"><label>Shop code (unique, for offline mode)</label><input class="fi" id="cs-code" placeholder="PH-2041"/></div>
+  <button class="btn btn-p btn-full" onclick="createShop()">Create shop</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">Print<span>hub</span></div>
+    <div class="login-badge">&#x1F510; Admin panel</div>
+    <div class="fl"><label>Admin email</label><input class="fi" type="email" id="l-email" placeholder="admin@printhub.com"/></div>
+    <div class="fl"><label>Password</label><input class="fi" type="password" id="l-pass" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn btn-p btn-full" onclick="doLogin()">Login &#x2192;</button>
+    <p style="margin-top:14px;font-size:12px;color:var(--gray);text-align:center">Only accounts with <code style="background:var(--surf2);padding:2px 6px;border-radius:4px">role=admin</code> can access this</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app">
+<div class="shell">
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-txt">Print<span>hub</span></div>
+    <div class="sb-logo-badge">ADMIN</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Overview</div>
+    <button class="sb-item active" onclick="showPage('overview')" id="nav-overview"><span class="ic">&#x1F4CA;</span><span>Dashboard</span></button>
+    <button class="sb-item" onclick="showPage('analytics')" id="nav-analytics"><span class="ic">&#x1F4C8;</span><span>Analytics</span></button>
+    <div class="sb-sec">Manage</div>
+    <button class="sb-item" onclick="showPage('orders')" id="nav-orders"><span class="ic">&#x1F5A8;</span><span>All Orders</span></button>
+    <button class="sb-item" onclick="showPage('shops')" id="nav-shops"><span class="ic">&#x1F3EA;</span><span>Shops</span></button>
+    <button class="sb-item" onclick="showPage('users')" id="nav-users"><span class="ic">&#x1F465;</span><span>Users</span></button>
+    <div class="sb-sec">Monitor</div>
+    <button class="sb-item" onclick="showPage('failed')" id="nav-failed"><span class="ic">&#x26A0;</span><span>Failed Jobs</span></button>
+  </div>
+  <div class="sb-footer">
+    <button class="btn btn-g btn-full" style="font-size:12px" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- OVERVIEW -->
+<div class="page active" id="page-overview">
+  <div class="topbar">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">Platform overview — live data</div></div>
+    <button class="btn btn-g" onclick="loadOverview()">&#x21BB; Refresh</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="sc-icon">&#x1F4B0;</div><div class="sc-label">Total Revenue</div><div class="sc-value" id="ov-revenue">&#x2014;</div><div class="sc-sub">all time collected</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x1F3E6;</div><div class="sc-label">Platform Commission</div><div class="sc-value" id="ov-commission">&#x2014;</div><div class="sc-sub">&#x20B9;1 per page</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x1F5A8;</div><div class="sc-label">Total Prints</div><div class="sc-value" id="ov-prints">&#x2014;</div><div class="sc-sub">completed orders</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x26A1;</div><div class="sc-label">Priority Revenue</div><div class="sc-value" id="ov-priority">&#x2014;</div><div class="sc-sub">100% to platform</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x1F465;</div><div class="sc-label">Total Users</div><div class="sc-value" id="ov-users">&#x2014;</div><div class="sc-sub">registered accounts</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x1F3EA;</div><div class="sc-label">Active Shops</div><div class="sc-value" id="ov-shops">&#x2014;</div><div class="sc-sub">not offline</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x1F4C5;</div><div class="sc-label">Today's Orders</div><div class="sc-value" id="ov-today">&#x2014;</div><div class="sc-sub">placed today</div></div>
+    <div class="stat-card"><div class="sc-icon">&#x274C;</div><div class="sc-label">Failed Jobs</div><div class="sc-value" id="ov-failed" style="color:var(--red)">&#x2014;</div><div class="sc-sub">need attention</div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-hdr"><h3>Recent orders</h3><button class="btn btn-g btn-sm" onclick="showPage('orders')">View all &#x2192;</button></div>
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>User</th><th>Shop</th><th>File</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+      <tbody id="recent-orders-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="page" id="page-analytics">
+  <div class="topbar">
+    <div><div class="page-title">Analytics</div><div class="page-sub">Revenue, prints, and growth over time</div></div>
+    <div class="tabs">
+      <button class="tab active" onclick="loadAnalytics('7d',this)">7 days</button>
+      <button class="tab" onclick="loadAnalytics('30d',this)">30 days</button>
+      <button class="tab" onclick="loadAnalytics('90d',this)">90 days</button>
+    </div>
+  </div>
+  <div class="rev-grid">
+    <div class="rev-card"><div class="rev-num" id="an-total">&#x2014;</div><div class="rev-lbl">Total revenue collected</div></div>
+    <div class="rev-card"><div class="rev-num" id="an-platform" style="color:var(--blue)">&#x2014;</div><div class="rev-lbl">Platform commission (&#x20B9;1/page)</div></div>
+    <div class="rev-card"><div class="rev-num" id="an-shops" style="color:var(--green)">&#x2014;</div><div class="rev-lbl">Paid to shop owners (&#x20B9;2/page)</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card"><div class="chart-title">Daily orders</div><div class="chart-sub">Completed print jobs per day</div><div class="bar-chart" id="chart-orders"></div></div>
+    <div class="chart-card"><div class="chart-title">Daily revenue (&#x20B9;)</div><div class="chart-sub">Total amount collected per day</div><div class="bar-chart" id="chart-revenue"></div></div>
+    <div class="chart-card"><div class="chart-title">Priority orders</div><div class="chart-sub">Priority vs normal jobs per day</div><div class="bar-chart" id="chart-priority"></div></div>
+    <div class="chart-card"><div class="chart-title">New signups</div><div class="chart-sub">User registrations per day</div><div class="bar-chart" id="chart-users"></div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-hdr"><h3>Top shops by revenue</h3></div>
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Shop</th><th>Orders</th><th>Shop revenue</th><th>Platform fee</th><th>Status</th></tr></thead>
+      <tbody id="top-shops-body"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ALL ORDERS -->
+<div class="page" id="page-orders">
+  <div class="topbar">
+    <div><div class="page-title">All Orders</div><div class="page-sub">Every order across the platform</div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="search-bar" placeholder="Search token, file, shop&#x2026;" oninput="filterOrders(this.value)"/>
+      <div class="tabs">
+        <button class="tab active" onclick="loadOrders('all',this)">All</button>
+        <button class="tab" onclick="loadOrders('completed',this)">Done</button>
+        <button class="tab" onclick="loadOrders('printing',this)">Live</button>
+        <button class="tab" onclick="loadOrders('failed',this)">Failed</button>
+      </div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>File</th><th>Shop</th><th>Color</th><th>Copies</th><th>Payment</th><th>Amount</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="orders-body"><tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SHOPS -->
+<div class="page" id="page-shops">
+  <div class="topbar">
+    <div><div class="page-title">Shops</div><div class="page-sub">All registered print shops</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input class="search-bar" placeholder="Search name, address&#x2026;" oninput="filterShops(this.value)"/>
+      <button class="btn btn-p" onclick="openModal('create-shop-modal')">+ Register shop</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Shop</th><th>Address</th><th>Code</th><th>Status</th><th>Auto-print</th><th>Orders</th><th>Actions</th></tr></thead>
+      <tbody id="shops-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- USERS -->
+<div class="page" id="page-users">
+  <div class="topbar">
+    <div><div class="page-title">Users</div><div class="page-sub">All registered accounts</div></div>
+    <input class="search-bar" placeholder="Search name, email&#x2026;" oninput="filterUsers(this.value)"/>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Orders</th><th>Joined</th><th>Actions</th></tr></thead>
+      <tbody id="users-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FAILED -->
+<div class="page" id="page-failed">
+  <div class="topbar">
+    <div><div class="page-title">Failed Jobs</div><div class="page-sub">Orders that failed to print</div></div>
+    <button class="btn btn-g" onclick="loadFailed()">&#x21BB; Refresh</button>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>File</th><th>Shop</th><th>Retries</th><th>Amount</th><th>Payment</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody id="failed-body"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div></div></div>
+
+<script>
+  const SUPABASE_URL = 'https://bqvcrsktjzivdvzodgab.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4aGdzYnV4d3R6Z21lcHl5b3N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MjkxMDcsImV4cCI6MjA5NDUwNTEwN30.GAqmdOhykSkfK8unOJ272L1oPgRQ0197X07kFRdLla8';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser=null, allOrders=[], allShops=[], allUsers=[];
+
+function toast(msg,type='inf'){
+  const ic={ok:'&#x2713;',err:'&#x2715;',inf:'&#x2139;'};
+  const el=document.createElement('div');
+  el.className='toast '+type;
+  el.innerHTML='<span>'+ic[type]+'</span>'+msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+function openModal(id){document.getElementById(id).classList.remove('hidden')}
+function closeModal(id){document.getElementById(id).classList.add('hidden')}
+function fmtRs(p){if(!p&&p!==0)return '&#x2014;';return '&#x20B9;'+(p/100).toLocaleString('en-IN')}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+function timeAgo(ts){
+  const d=(Date.now()-new Date(ts))/1000;
+  if(d<60)return 'just now';
+  if(d<3600)return Math.floor(d/60)+'m ago';
+  if(d<86400)return Math.floor(d/3600)+'h ago';
+  return Math.floor(d/86400)+'d ago';
+}
+function escJ(o){return "'"+JSON.stringify(o).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'"}
+
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pw=document.getElementById('l-pass').value;
+  if(!email||!pw)return toast('Fill in all fields','err');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  if(error)return toast(error.message,'err');
+  const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.user.id).single();
+  if(!profile||profile.role!=='admin'){await sb.auth.signOut();return toast('Access denied — admin only','err');}
+  currentUser=data.user;
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-app').style.display='block';
+  toast('Welcome, '+profile.name,'ok');
+  loadOverview();loadShops();loadUsers();
+}
+
+async function doLogout(){
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('screen-app').style.display='none';
+  document.getElementById('screen-login').style.display='flex';
+}
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name)?.classList.add('active');
+  const loaders={overview:loadOverview,analytics:()=>loadAnalytics('7d',document.querySelector('#page-analytics .tab')),orders:()=>loadOrders('all',document.querySelector('#page-orders .tab')),shops:loadShops,users:loadUsers,failed:loadFailed};
+  loaders[name]?.();
+}
+
+async function loadOverview(){
+  const today=new Date().toISOString().split('T')[0];
+  const [oRes,uRes,sRes,tRes,fRes]=await Promise.all([
+    sb.from('orders').select('amount_total,amount_shop,amount_platform,priority_fee,status,is_priority'),
+    sb.from('profiles').select('id',{count:'exact'}),
+    sb.from('shops').select('id,status'),
+    sb.from('orders').select('id',{count:'exact'}).gte('created_at',today),
+    sb.from('orders').select('id',{count:'exact'}).eq('status','failed'),
+  ]);
+  const orders=oRes.data||[];
+  const done=orders.filter(o=>o.status==='completed');
+  const totalRev=done.reduce((s,o)=>s+(o.amount_total||0),0);
+  const platRev=done.reduce((s,o)=>s+(o.amount_platform||0),0);
+  const priRev=done.filter(o=>o.is_priority).reduce((s,o)=>s+(o.priority_fee||0),0);
+  const activeShops=(sRes.data||[]).filter(s=>s.status!=='offline').length;
+  document.getElementById('ov-revenue').innerHTML=fmtRs(totalRev);
+  document.getElementById('ov-commission').innerHTML=fmtRs(platRev);
+  document.getElementById('ov-prints').textContent=done.length.toLocaleString();
+  document.getElementById('ov-priority').innerHTML=fmtRs(priRev);
+  document.getElementById('ov-users').textContent=(uRes.count||0).toLocaleString();
+  document.getElementById('ov-shops').textContent=activeShops;
+  document.getElementById('ov-today').textContent=tRes.count||0;
+  document.getElementById('ov-failed').textContent=fRes.count||0;
+  const {data:recent}=await sb.from('orders').select('*,shops(name),profiles(name,email)').order('created_at',{ascending:false}).limit(10);
+  const tb=document.getElementById('recent-orders-body');
+  if(!recent?.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray)">No orders yet</td></tr>';return;}
+  tb.innerHTML=recent.map(o=>`<tr onclick="showOrderModal(${escJ(o)})">
+    <td><strong style="color:var(--blue);font-family:var(--font-h)">${o.token||'&#x2014;'}</strong></td>
+    <td style="color:var(--gray);font-size:12px">${o.profiles?.name||'&#x2014;'}</td>
+    <td>${o.shops?.name||'&#x2014;'}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file_name}</td>
+    <td>${fmtRs(o.amount_total)}</td>
+    <td><span class="badge b-${o.status}">${o.status}</span></td>
+    <td style="color:var(--gray)">${timeAgo(o.created_at)}</td>
+  </tr>`).join('');
+}
+
+async function loadAnalytics(range,tabEl){
+  if(tabEl){document.querySelectorAll('#page-analytics .tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
+  const days=range==='7d'?7:range==='30d'?30:90;
+  const from=new Date();from.setDate(from.getDate()-days);
+  const [oRes,uRes]=await Promise.all([
+    sb.from('orders').select('created_at,amount_total,amount_shop,amount_platform,is_priority,priority_fee,status').gte('created_at',from.toISOString()),
+    sb.from('profiles').select('created_at').gte('created_at',from.toISOString()),
+  ]);
+  const orders=(oRes.data||[]).filter(o=>o.status==='completed');
+  const totalRev=orders.reduce((s,o)=>s+(o.amount_total||0),0);
+  const platRev=orders.reduce((s,o)=>s+(o.amount_platform||0),0);
+  const shopRev=orders.reduce((s,o)=>s+(o.amount_shop||0),0);
+  document.getElementById('an-total').innerHTML=fmtRs(totalRev);
+  document.getElementById('an-platform').innerHTML=fmtRs(platRev);
+  document.getElementById('an-shops').innerHTML=fmtRs(shopRev);
+  const labels=[],oD={},rD={},pD={},uD={};
+  for(let i=days-1;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    labels.push(k);oD[k]=0;rD[k]=0;pD[k]=0;uD[k]=0;
+  }
+  orders.forEach(o=>{const k=o.created_at.split('T')[0];if(oD[k]!==undefined){oD[k]++;rD[k]+=(o.amount_total||0)/100;if(o.is_priority)pD[k]++;}});
+  (uRes.data||[]).forEach(u=>{const k=u.created_at.split('T')[0];if(uD[k]!==undefined)uD[k]++;});
+  const sl=labels.map(l=>{const d=new Date(l);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});});
+  renderBar('chart-orders',sl,labels.map(l=>oD[l]),false);
+  renderBar('chart-revenue',sl,labels.map(l=>Math.round(rD[l])),true);
+  renderBar('chart-priority',sl,labels.map(l=>pD[l]),false,'amber');
+  renderBar('chart-users',sl,labels.map(l=>uD[l]),false,'green');
+  const {data:sOrders}=await sb.from('orders').select('shop_id,amount_total,amount_shop,amount_platform,shops(name,status)').eq('status','completed').gte('created_at',from.toISOString());
+  const sMap={};
+  (sOrders||[]).forEach(o=>{
+    if(!sMap[o.shop_id])sMap[o.shop_id]={name:o.shops?.name||'&#x2014;',status:o.shops?.status,orders:0,sRev:0,pRev:0};
+    sMap[o.shop_id].orders++;sMap[o.shop_id].sRev+=(o.amount_shop||0);sMap[o.shop_id].pRev+=(o.amount_platform||0);
+  });
+  const top=Object.values(sMap).sort((a,b)=>b.sRev-a.sRev).slice(0,10);
+  document.getElementById('top-shops-body').innerHTML=top.length
+    ?top.map((s,i)=>`<tr><td style="color:var(--gray);font-weight:700">#${i+1}</td><td><strong>${s.name}</strong></td><td>${s.orders}</td><td style="color:var(--green)">${fmtRs(s.sRev)}</td><td style="color:var(--blue)">${fmtRs(s.pRev)}</td><td><span class="badge b-${s.status}">${s.status}</span></td></tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray)">No data for this period</td></tr>';
+}
+
+function renderBar(id,labels,values,isRs,color=''){
+  const el=document.getElementById(id);
+  const max=Math.max(...values,1);
+  el.innerHTML=values.map((v,i)=>`<div class="bar-col">
+    <div class="bar-val">${isRs?'&#x20B9;'+v:v}</div>
+    <div class="bar ${color}" style="height:${Math.max(3,(v/max)*85)}px" title="${labels[i]}: ${v}"></div>
+    <div class="bar-lbl">${labels[i]}</div>
+  </div>`).join('');
+}
+
+async function loadOrders(filter,tabEl){
+  if(tabEl){document.querySelectorAll('#page-orders .tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');}
+  let q=sb.from('orders').select('*,shops(name),profiles(name,email)').order('created_at',{ascending:false}).limit(200);
+  if(filter!=='all')q=q.eq('status',filter);
+  const {data}=await q;
+  allOrders=data||[];
+  renderOrders(allOrders);
+}
+
+function renderOrders(orders){
+  const tb=document.getElementById('orders-body');
+  if(!orders.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray)">No orders found</td></tr>';return;}
+  tb.innerHTML=orders.map(o=>`<tr onclick="showOrderModal(${escJ(o)})">
+    <td><strong style="color:var(--blue);font-family:var(--font-h)">${o.token||'&#x2014;'}</strong></td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file_name}</td>
+    <td style="font-size:12px">${o.shops?.name||'&#x2014;'}</td>
+    <td>${o.color_mode==='bw'?'B&W':'Colour'}</td>
+    <td>${o.copies}</td>
+    <td>${o.payment_mode}</td>
+    <td>${fmtRs(o.amount_total)}</td>
+    <td>${o.is_priority?'<span class="badge b-busy">&#x26A1;</span>':'&#x2014;'}</td>
+    <td><span class="badge b-${o.status}">${o.status}</span></td>
+    <td style="color:var(--gray);font-size:12px;white-space:nowrap">${fmtDate(o.created_at)}</td>
+  </tr>`).join('');
+}
+
+function filterOrders(q){
+  const s=q.toLowerCase();
+  renderOrders(allOrders.filter(o=>(o.token||'').toLowerCase().includes(s)||(o.file_name||'').toLowerCase().includes(s)||(o.shops?.name||'').toLowerCase().includes(s)));
+}
+
+async function loadShops(){
+  const {data}=await sb.from('shops').select('*,profiles(name,email)').order('created_at',{ascending:false});
+  allShops=data||[];renderShops(allShops);
+}
+
+function renderShops(shops){
+  const tb=document.getElementById('shops-body');
+  if(!shops.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">No shops yet</td></tr>';return;}
+  tb.innerHTML=shops.map(s=>`<tr>
+    <td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--gray)">${s.profiles?.name||'&#x2014;'} &middot; ${s.profiles?.email||'&#x2014;'}</div></td>
+    <td style="font-size:12px;color:var(--gray);max-width:150px">${s.address}</td>
+    <td><code style="background:var(--surf2);padding:2px 8px;border-radius:6px;font-size:12px">${s.shop_code||'&#x2014;'}</code></td>
+    <td><span class="badge b-${s.status}">${s.status}</span></td>
+    <td>${s.auto_print?'<span style="color:var(--green)">&#x2713; On</span>':'<span style="color:var(--gray)">Off</span>'}</td>
+    <td id="sc-${s.id}" style="color:var(--gray)">&#x2014;</td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-g btn-sm" onclick="showShopModal(${escJ(s)})">Details</button>
+      ${s.status!=='offline'?`<button class="btn btn-err btn-sm" onclick="setShopStatus('${s.id}','offline');event.stopPropagation()">Block</button>`:`<button class="btn btn-ok btn-sm" onclick="setShopStatus('${s.id}','open');event.stopPropagation()">Unblock</button>`}
+    </div></td>
+  </tr>`).join('');
+  shops.forEach(async s=>{
+    const {count}=await sb.from('orders').select('id',{count:'exact'}).eq('shop_id',s.id);
+    const el=document.getElementById('sc-'+s.id);if(el)el.textContent=count||0;
+  });
+}
+
+function filterShops(q){
+  const s=q.toLowerCase();
+  renderShops(allShops.filter(sh=>(sh.name||'').toLowerCase().includes(s)||(sh.address||'').toLowerCase().includes(s)));
+}
+
+async function setShopStatus(shopId,status){
+  const {error}=await sb.from('shops').update({status}).eq('id',shopId);
+  if(error)return toast('Failed: '+error.message,'err');
+  toast('Shop '+(status==='offline'?'blocked':'unblocked'),'ok');loadShops();
+}
+
+async function loadUsers(){
+  const {data}=await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  allUsers=data||[];renderUsers(allUsers);
+}
+
+function renderUsers(users){
+  const tb=document.getElementById('users-body');
+  if(!users.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">No users yet</td></tr>';return;}
+  tb.innerHTML=users.map(u=>`<tr onclick="showUserModal(${escJ(u)})">
+    <td><strong>${u.name||'&#x2014;'}</strong></td>
+    <td style="color:var(--gray);font-size:12px">${u.email||'&#x2014;'}</td>
+    <td style="color:var(--gray)">${u.phone||'&#x2014;'}</td>
+    <td><span class="badge b-${u.role}">${u.role}</span></td>
+    <td id="uc-${u.id}" style="color:var(--gray)">&#x2014;</td>
+    <td style="color:var(--gray);font-size:12px">${fmtDate(u.created_at)}</td>
+    <td><div style="display:flex;gap:6px">
+      ${u.role==='customer'?`<button class="btn btn-warn btn-sm" onclick="setRole('${u.id}','owner',event)">Owner</button>`:''}
+      ${u.role!=='admin'?`<button class="btn btn-g btn-sm" onclick="setRole('${u.id}','admin',event)">Admin</button>`:''}
+    </div></td>
+  </tr>`).join('');
+  users.forEach(async u=>{
+    const {count}=await sb.from('orders').select('id',{count:'exact'}).eq('user_id',u.id);
+    const el=document.getElementById('uc-'+u.id);if(el)el.textContent=count||0;
+  });
+}
+
+function filterUsers(q){
+  const s=q.toLowerCase();
+  renderUsers(allUsers.filter(u=>(u.name||'').toLowerCase().includes(s)||(u.email||'').toLowerCase().includes(s)));
+}
+
+async function setRole(userId,role,e){
+  e.stopPropagation();
+  const {error}=await sb.from('profiles').update({role}).eq('id',userId);
+  if(error)return toast('Failed: '+error.message,'err');
+  toast('Role updated to '+role,'ok');loadUsers();
+}
+
+async function loadFailed(){
+  const {data}=await sb.from('orders').select('*,shops(name),profiles(name)').eq('status','failed').order('created_at',{ascending:false});
+  const tb=document.getElementById('failed-body');
+  if(!data?.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px"><div style="font-size:28px;margin-bottom:8px">&#x2705;</div><div style="color:var(--gray)">No failed jobs</div></td></tr>';return;}
+  tb.innerHTML=data.map(o=>`<tr>
+    <td><strong style="color:var(--blue);font-family:var(--font-h)">${o.token||'&#x2014;'}</strong></td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file_name}</td>
+    <td>${o.shops?.name||'&#x2014;'}</td>
+    <td style="color:var(--red)">${o.retry_count||0}/3</td>
+    <td>${fmtRs(o.amount_total)}</td>
+    <td><span class="badge b-${o.payment_status==='paid'?'completed':'pending'}">${o.payment_status}</span></td>
+    <td style="color:var(--gray)">${timeAgo(o.created_at)}</td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-warn btn-sm" onclick="requeue('${o.id}')">&#x21BB; Requeue</button>
+      <button class="btn btn-g btn-sm" onclick="showOrderModal(${escJ(o)})">Details</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function requeue(orderId){
+  const {error}=await sb.from('orders').update({status:'queued',retry_count:0}).eq('id',orderId);
+  if(error)return toast('Failed: '+error.message,'err');
+  toast('Order re-queued','ok');loadFailed();
+}
+
+function showOrderModal(o){
+  document.getElementById('om-title').textContent='Order '+(o.token||'&#x2014;');
+  document.getElementById('om-body').innerHTML=`
+    <div class="detail-row"><span class="detail-key">File</span><span class="detail-val">${o.file_name}</span></div>
+    <div class="detail-row"><span class="detail-key">Shop</span><span class="detail-val">${o.shops?.name||o.shop_id}</span></div>
+    <div class="detail-row"><span class="detail-key">User</span><span class="detail-val">${o.profiles?.name||'&#x2014;'}</span></div>
+    <div class="detail-row"><span class="detail-key">Color</span><span class="detail-val">${o.color_mode==='bw'?'Black & White':'Colour'}</span></div>
+    <div class="detail-row"><span class="detail-key">Paper</span><span class="detail-val">${o.paper_size}</span></div>
+    <div class="detail-row"><span class="detail-key">Sides</span><span class="detail-val">${o.sides}</span></div>
+    <div class="detail-row"><span class="detail-key">Copies</span><span class="detail-val">${o.copies}</span></div>
+    <div class="detail-row"><span class="detail-key">Priority</span><span class="detail-val">${o.is_priority?'&#x26A1; Yes':'No'}</span></div>
+    <div class="detail-row"><span class="detail-key">Payment</span><span class="detail-val">${o.payment_mode} &middot; ${o.payment_status}</span></div>
+    <div class="detail-row"><span class="detail-key">Total</span><span class="detail-val">${fmtRs(o.amount_total)}</span></div>
+    <div class="detail-row"><span class="detail-key">Shop share</span><span class="detail-val" style="color:var(--green)">${fmtRs(o.amount_shop)}</span></div>
+    <div class="detail-row"><span class="detail-key">Platform share</span><span class="detail-val" style="color:var(--blue)">${fmtRs(o.amount_platform)}</span></div>
+    <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge b-${o.status}">${o.status}</span></span></div>
+    <div class="detail-row"><span class="detail-key">Retries</span><span class="detail-val">${o.retry_count||0}/3</span></div>
+    ${o.notes?`<div class="detail-row"><span class="detail-key">Notes</span><span class="detail-val">${o.notes}</span></div>`:''}
+    <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val">${fmtDate(o.created_at)}</span></div>
+    ${o.status==='failed'?`<div style="margin-top:16px"><button class="btn btn-warn btn-full" onclick="requeue('${o.id}');closeModal('order-modal')">&#x21BB; Requeue this order</button></div>`:''}
+  `;
+  openModal('order-modal');
+}
+
+function showShopModal(s){
+  document.getElementById('sm-title').textContent=s.name;
+  document.getElementById('sm-body').innerHTML=`
+    <div class="detail-row"><span class="detail-key">Owner</span><span class="detail-val">${s.profiles?.name||'&#x2014;'}<br><small style="color:var(--gray)">${s.profiles?.email||'&#x2014;'}</small></span></div>
+    <div class="detail-row"><span class="detail-key">Address</span><span class="detail-val">${s.address}</span></div>
+    <div class="detail-row"><span class="detail-key">Shop code</span><span class="detail-val"><code style="background:var(--surf2);padding:2px 8px;border-radius:6px">${s.shop_code||'&#x2014;'}</code></span></div>
+    <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge b-${s.status}">${s.status}</span></span></div>
+    <div class="detail-row"><span class="detail-key">Auto-print</span><span class="detail-val">${s.auto_print?'Enabled':'Disabled'}</span></div>
+    <div class="detail-row"><span class="detail-key">Registered</span><span class="detail-val">${fmtDate(s.created_at)}</span></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      ${s.status!=='offline'?`<button class="btn btn-err btn-full" onclick="setShopStatus('${s.id}','offline');closeModal('shop-modal')">Block shop</button>`:`<button class="btn btn-ok btn-full" onclick="setShopStatus('${s.id}','open');closeModal('shop-modal')">Unblock shop</button>`}
+    </div>
+  `;
+  openModal('shop-modal');
+}
+
+function showUserModal(u){
+  document.getElementById('um-title').textContent=u.name||u.email;
+  document.getElementById('um-body').innerHTML=`
+    <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${u.name||'&#x2014;'}</span></div>
+    <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">${u.email||'&#x2014;'}</span></div>
+    <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val">${u.phone||'&#x2014;'}</span></div>
+    <div class="detail-row"><span class="detail-key">Role</span><span class="detail-val"><span class="badge b-${u.role}">${u.role}</span></span></div>
+    <div class="detail-row"><span class="detail-key">Joined</span><span class="detail-val">${fmtDate(u.created_at)}</span></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      ${u.role!=='owner'?`<button class="btn btn-warn" style="flex:1" onclick="setRole('${u.id}','owner',event);closeModal('user-modal')">Make owner</button>`:''}
+      ${u.role!=='admin'?`<button class="btn btn-g" style="flex:1" onclick="setRole('${u.id}','admin',event);closeModal('user-modal')">Make admin</button>`:''}
+      ${u.role!=='customer'?`<button class="btn btn-g" style="flex:1" onclick="setRole('${u.id}','customer',event);closeModal('user-modal')">Make customer</button>`:''}
+    </div>
+  `;
+  openModal('user-modal');
+}
+
+async function createShop(){
+  const email=document.getElementById('cs-email').value.trim();
+  const name=document.getElementById('cs-name').value.trim();
+  const address=document.getElementById('cs-address').value.trim();
+  const code=document.getElementById('cs-code').value.trim();
+  if(!email||!name||!address||!code)return toast('Fill in all fields','err');
+  const {data:profile}=await sb.from('profiles').select('id').eq('email',email).single();
+  if(!profile)return toast('No user found with that email. They must sign up first.','err');
+  const {data:existing}=await sb.from('shops').select('id').eq('shop_code',code).maybeSingle();
+  if(existing)return toast('Shop code already in use','err');
+  const {error}=await sb.from('shops').insert({owner_id:profile.id,name,address,shop_code:code,status:'open'});
+  if(error)return toast('Failed: '+error.message,'err');
+  await sb.from('profiles').update({role:'owner'}).eq('id',profile.id);
+  toast('Shop created! Owner role assigned.','ok');
+  closeModal('create-shop-modal');
+  ['cs-email','cs-name','cs-address','cs-code'].forEach(id=>document.getElementById(id).value='');
+  loadShops();
+}
+
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session){
+    const {data:profile}=await sb.from('profiles').select('role').eq('id',session.user.id).single();
+    if(profile?.role==='admin'){
+      currentUser=session.user;
+      document.getElementById('screen-login').style.display='none';
+      document.getElementById('screen-app').style.display='block';
+      loadOverview();loadShops();loadUsers();
+    }
+  }
+});
+
+(async()=>{
+  const {data}=await sb.auth.getSession();
+  if(data.session){
+    const {data:profile}=await sb.from('profiles').select('role').eq('id',data.session.user.id).single();
+    if(profile?.role==='admin'){
+      currentUser=data.session.user;
+      document.getElementById('screen-login').style.display='none';
+      document.getElementById('screen-app').style.display='block';
+      loadOverview();loadShops();loadUsers();
+    }
+  }
+})();
+</script>
+</body>
+</html>
