@@ -1,0 +1,10 @@
+# Ignore large build artifacts and dependencies to keep Vercel uploads small
+printhub-electron/dist/
+printhub-electron/node_modules/
+dist/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+*.exe
+*.zip
