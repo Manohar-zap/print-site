@@ -1,0 +1,12 @@
+{
+  "name": "printhub-user",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node generate-env.js",
+    "vercel-build": "node generate-env.js"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
