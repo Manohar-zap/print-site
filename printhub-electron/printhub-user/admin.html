@@ -310,9 +310,10 @@ button{cursor:pointer;font-family:var(--font-b)}
 
 </div></div></div>
 
+<script src="./env.js"></script>
 <script>
-  const SUPABASE_URL = 'https://bqvcrsktjzivdvzodgab.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxdmNyc2t0anppdmR2em9kZ2FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NDU1MzYsImV4cCI6MjA5NDUyMTUzNn0.Jq0rWvAkDyRcNov67Y6b6XsUBlAZwkIoWATvPIbsAGc';
+  var SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) ? window.__ENV.SUPABASE_URL : '';
+var SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) ? window.__ENV.SUPABASE_ANON_KEY : '';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser=null, allOrders=[], allShops=[], allUsers=[];
 

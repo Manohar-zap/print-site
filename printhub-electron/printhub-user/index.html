@@ -552,13 +552,14 @@ h1 .blue{color:var(--blue)}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-     SCRIPT
+  SCRIPT
 ═══════════════════════════════════════════════════════ -->
+<script src="./env.js"></script>
 <script>
-// ── CONFIG — replace with your values ───────────────────────
-  const SUPABASE_URL = 'https://bqvcrsktjzivdvzodgab.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxdmNyc2t0anppdmR2em9kZ2FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NDU1MzYsImV4cCI6MjA5NDUyMTUzNn0.Jq0rWvAkDyRcNov67Y6b6XsUBlAZwkIoWATvPIbsAGc';
-const RAZORPAY_KEY     = 'rzp_test_Sq3rjZLxIvplm5';  // from Razorpay dashboard
+// ── CONFIG — values injected from env.js ───────────────────────
+var SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) ? window.__ENV.SUPABASE_URL : '';
+var SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) ? window.__ENV.SUPABASE_ANON_KEY : '';
+var RAZORPAY_KEY = (window.__ENV && window.__ENV.RAZORPAY_KEY) ? window.__ENV.RAZORPAY_KEY : '';
 
 // ── INIT ────────────────────────────────────────────────────
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

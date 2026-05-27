@@ -10,3 +10,4 @@ printhub-electron/dist/
 .env
 .DS_Store
 Thumbs.db
+printhub-electron/printhub-user/env.js

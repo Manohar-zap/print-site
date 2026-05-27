@@ -16,8 +16,9 @@ const PrintQueue = require("./queue/PrintQueue");
 const PrinterService = require("./printer/PrinterService");
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const SUPABASE_URL = "https://bqvcrsktjzivdvzodgab.supabase.co";
-const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxdmNyc2t0anppdmR2em9kZ2FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NDU1MzYsImV4cCI6MjA5NDUyMTUzNn0.Jq0rWvAkDyRcNov67Y6b6XsUBlAZwkIoWATvPIbsAGc";
+// Supabase credentials are read from environment variables to avoid committing secrets.
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
 const isDev = process.argv.includes("--dev");
 const store = new Store();
