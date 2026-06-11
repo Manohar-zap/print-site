@@ -562,31 +562,15 @@ var SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) ? windo
 var RAZORPAY_KEY = (window.__ENV && window.__ENV.RAZORPAY_KEY) ? window.__ENV.RAZORPAY_KEY : '';
 
 // ── INIT ────────────────────────────────────────────────────
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // #region agent log: init
-  fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '394b05',
-    },
-    body: JSON.stringify({
-      sessionId: '394b05',
-      runId: 'pre-fix',
-      hypothesisId: 'H3',
-      location: 'printhub-user/index.html:init',
-      message: 'page-init: razorpay availability & worker config',
-      data: {
-        razorpayPresent: typeof window.Razorpay !== 'undefined',
-        pdfjsWorkerSrc: (typeof pdfjsLib !== 'undefined' && pdfjsLib?.GlobalWorkerOptions)
-          ? pdfjsLib.GlobalWorkerOptions.workerSrc
-          : null,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
+// autoRefreshToken & persistSession disabled: this page is anonymous (no login),
+// so no stored session is needed and the endless refresh-token network loop is avoided.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
+});
 
 let currentStep = 1;
 let selectedFile = null;
@@ -603,27 +587,6 @@ const state = { color: 'bw', paper: 'A4', sides: 'single' };
 
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-
-  // #region agent log: pdfjs worker set
-  fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '394b05',
-    },
-    body: JSON.stringify({
-      sessionId: '394b05',
-      runId: 'pre-fix',
-      hypothesisId: 'H3',
-      location: 'printhub-user/index.html:pdfjs-worker-set',
-      message: 'pdfjs workerSrc assigned',
-      data: {
-        pdfjsWorkerSrc: pdfjsLib?.GlobalWorkerOptions?.workerSrc || '',
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
 // ── TOAST ───────────────────────────────────────────────────
 function toast(msg, type = 'inf') {
@@ -801,30 +764,6 @@ async function confirmOrder() {
   btn.disabled = true;
   btn.textContent = 'Uploading PDF…';
 
-  // #region agent log: confirmOrder-start
-  fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '394b05',
-    },
-    body: JSON.stringify({
-      sessionId: '394b05',
-      runId: 'pre-fix',
-      hypothesisId: 'H5',
-      location: 'printhub-user/index.html:confirmOrder-start',
-      message: 'confirmOrder: starting',
-      data: {
-        paymentMode: payMode,
-        selectedShopId: selectedShop?.id || null,
-        selectedFileName: selectedFile?.name || null,
-        selectedFileSize: selectedFile?.size || null,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   try {
     // 1. Upload PDF to Supabase Storage
     const ext = '.pdf';
@@ -833,25 +772,6 @@ async function confirmOrder() {
       contentType: 'application/pdf', upsert: false
     });
     if (upErr) throw new Error('Upload failed: ' + upErr.message);
-
-    // #region agent log: confirmOrder-upload-ok
-    fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '394b05',
-      },
-      body: JSON.stringify({
-        sessionId: '394b05',
-        runId: 'pre-fix',
-        hypothesisId: 'H5',
-        location: 'printhub-user/index.html:confirmOrder-upload-ok',
-        message: 'confirmOrder: PDF upload succeeded',
-        data: { filePathPrefix: (filePath || '').slice(0, 24) },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
 
     // Get signed URL (48h)
     const { data: signedData } = await sb.storage.from('print-files').createSignedUrl(filePath, 172800);
@@ -890,25 +810,6 @@ async function confirmOrder() {
     activeOrderId = order.id;
     currentToken = token;
 
-    // #region agent log: confirmOrder-order-insert-ok
-    fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '394b05',
-      },
-      body: JSON.stringify({
-        sessionId: '394b05',
-        runId: 'pre-fix',
-        hypothesisId: 'H5',
-        location: 'printhub-user/index.html:confirmOrder-order-insert-ok',
-        message: 'confirmOrder: order created',
-        data: { orderId: order?.id || null, token, paymentMode: payMode, status: order?.status || null },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     if (payMode === 'online') {
       btn.textContent = 'Opening Razorpay…';
       await openRazorpay(order, token);
@@ -916,29 +817,6 @@ async function confirmOrder() {
       showSuccess(order, token);
     }
   } catch (err) {
-    // #region agent log: confirmOrder failed
-    fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '394b05',
-      },
-      body: JSON.stringify({
-        sessionId: '394b05',
-        runId: 'pre-fix',
-        hypothesisId: 'H4',
-        location: 'printhub-user/index.html:confirmOrder-catch',
-        message: 'confirmOrder: error thrown',
-        data: {
-          paymentMode: payMode,
-          hasErrorMessage: !!err?.message,
-          errorMessagePrefix: (err?.message || '').slice(0, 80),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     toast(err.message, 'err');
     btn.disabled = false;
     btn.textContent = payMode === 'online' ? '💳 Pay & Confirm' : '🖨 Confirm (Pay at shop)';
@@ -947,29 +825,6 @@ async function confirmOrder() {
 
 // ── RAZORPAY ─────────────────────────────────────────────────
 async function openRazorpay(order, token) {
-  // #region agent log: razorpay open attempt
-  fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '394b05',
-    },
-    body: JSON.stringify({
-      sessionId: '394b05',
-      runId: 'pre-fix',
-      hypothesisId: 'H2',
-      location: 'printhub-user/index.html:openRazorpay',
-      message: 'openRazorpay: about to instantiate Razorpay',
-      data: {
-        razorpayPresent: typeof window.Razorpay !== 'undefined',
-        orderIdPresent: !!order?.id,
-        tokenPrefix: (token || '').slice(0, 3),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   const amt = order.amount_total || calcCost().total * 100;
   const rzp = new window.Razorpay({
     key: RAZORPAY_KEY,
@@ -978,29 +833,6 @@ async function openRazorpay(order, token) {
     name: 'Printhub',
     description: `Token ${token} · ${selectedShop.name}`,
     handler: async function(response) {
-      // #region agent log: razorpay handler called
-      fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': '394b05',
-        },
-        body: JSON.stringify({
-          sessionId: '394b05',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          location: 'printhub-user/index.html:razorpay-handler',
-          message: 'razorpay handler called',
-          data: {
-            hasPaymentId: !!response?.razorpay_payment_id,
-            hasOrderId: !!response?.razorpay_order_id,
-            hasSignature: !!response?.razorpay_signature,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-
       // Mark paid & queued
       await sb.from('orders').update({
         payment_status: 'paid',
@@ -1013,25 +845,6 @@ async function openRazorpay(order, token) {
     theme: { color: '#1a6bff' },
     modal: {
       ondismiss: () => {
-        // #region agent log: razorpay modal dismiss
-        fetch('http://127.0.0.1:7854/ingest/dcf102d7-fd36-473b-a02e-2ed40ee689b3', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '394b05',
-          },
-          body: JSON.stringify({
-            sessionId: '394b05',
-            runId: 'pre-fix',
-            hypothesisId: 'H6',
-            location: 'printhub-user/index.html:razorpay-ondismiss',
-            message: 'razorpay modal dismissed',
-            data: { orderId: order?.id || null, tokenPrefix: (token || '').slice(0, 3) },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
-
         toast('Payment cancelled', 'inf');
         const btn = document.getElementById('btn-confirm');
         btn.disabled = false;
