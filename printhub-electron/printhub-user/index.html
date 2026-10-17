@@ -267,16 +267,16 @@ h1 .blue{color:var(--blue)}
   <div class="hero">
     <div class="hero-badge"><div class="pulse"></div>Live in your city</div>
     <h1>Print your PDF<br><span class="blue">in 30 seconds.</span></h1>
-    <p class="hero-sub">Upload your PDF, pick a nearby shop, pay online or at the counter. Walk in with your token — it's already printing.</p>
+    <p class="hero-sub">Upload your PDF, pick a nearby shop, pay online or at the counter. Walk in with your token — the shop prints when ready.</p>
     <div class="hero-actions">
       <button class="btn btn-primary btn-lg" onclick="showScreen('order');startOrder()">Upload PDF &amp; print →</button>
       <button class="btn btn-ghost btn-lg" onclick="showScreen('track')">Track my order</button>
     </div>
-    <p class="hero-note">No account needed &nbsp;·&nbsp; PDF only &nbsp;·&nbsp; Auto-printed at shop</p>
+    <p class="hero-note">No account needed &nbsp;·&nbsp; PDF only &nbsp;·&nbsp; Printed at shop</p>
     <div class="hero-stats">
       <div><div class="stat-n">₹3</div><div class="stat-l">per page</div></div>
       <div><div class="stat-n">30s</div><div class="stat-l">to place order</div></div>
-      <div><div class="stat-n">Auto</div><div class="stat-l">printed at shop</div></div>
+      <div><div class="stat-n">Manual</div><div class="stat-l">print at shop</div></div>
       <div><div class="stat-n">Token</div><div class="stat-l">based tracking</div></div>
     </div>
   </div>
@@ -299,7 +299,7 @@ h1 .blue{color:var(--blue)}
       <div class="step-card">
         <div class="step-n">03</div>
         <div class="step-t">Walk in with token</div>
-        <div class="step-d">Get a token like A24. Shop receives your job instantly and auto-prints it. Track status anytime with your token.</div>
+        <div class="step-d">Get a token like A24. Shop receives your job instantly. They print it when you arrive — track status anytime with your token.</div>
       </div>
     </div>
   </div>
@@ -322,7 +322,7 @@ h1 .blue{color:var(--blue)}
     <div class="sec-title">Simple flat rate</div>
     <div class="price-box">
       <div class="price-big">₹3 <span>/ page</span></div>
-      <div class="price-note">Black &amp; White · A4 · Auto-printed</div>
+      <div class="price-note">Black &amp; White · A4 · Printed at shop</div>
       <div class="price-split">
         <div class="split-item"><div class="split-n" style="color:var(--green)">₹2</div><div class="split-l">Shop owner</div></div>
         <div class="split-item"><div class="split-n" style="color:var(--blue)">₹1</div><div class="split-l">Printhub fee</div></div>
@@ -705,7 +705,7 @@ async function loadShops() {
   el.innerHTML = '';
   data.forEach(shop => {
     const dotCls = { open: 'd-open', busy: 'd-busy', paused: 'd-paused' }[shop.status] || 'd-paused';
-    const statusTxt = { open: '⚡ Open · Auto-print ready', busy: '🟡 Busy — short wait', paused: '⏸ Temporarily paused' }[shop.status] || shop.status;
+    const statusTxt = { open: '⚡ Open · Ready to print', busy: '🟡 Busy — short wait', paused: '⏸ Temporarily paused' }[shop.status] || shop.status;
     const card = document.createElement('div');
     card.className = 'shop-card';
     card.innerHTML = `

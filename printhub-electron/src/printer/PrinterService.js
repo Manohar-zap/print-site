@@ -1,167 +1,202 @@
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs-extra');
+const { BrowserWindow } = require("electron");
+const path = require("path");
+const { pathToFileURL } = require("url");
+
+// Extra time (ms) after PDF loads before sending to printer.
+// Gives the renderer time to fully render the page content.
+const RENDER_DELAY_MS = 600;
 
 class PrinterService {
   constructor(store) {
     this.store = store;
+    this._printWindow = null;
   }
 
-  // ── LIST PRINTERS ───────────────────────────────────────────────────────────
-  async listPrinters() {
-    return new Promise((resolve) => {
-      if (process.platform === 'win32') {
-        exec(
-          'powershell -command "Get-Printer | Select-Object Name,DriverName,PrinterStatus | ConvertTo-Json"',
-          (err, stdout) => {
-            if (err) return resolve([]);
-            try {
-              const raw = JSON.parse(stdout);
-              const list = Array.isArray(raw) ? raw : [raw];
-              resolve(list.map(p => ({
-                name: p.Name,
-                driver: p.DriverName,
-                status: p.PrinterStatus === 0 ? 'online' : 'offline',
-              })));
-            } catch { resolve([]); }
-          }
-        );
-      } else if (process.platform === 'darwin') {
-        exec('lpstat -p', (err, stdout) => {
-          if (err) return resolve([]);
-          const printers = [];
-          stdout.split('\n').forEach(line => {
-            const m = line.match(/^printer (\S+)/);
-            if (m) printers.push({ name: m[1], status: line.includes('idle') ? 'online' : 'offline' });
-          });
-          resolve(printers);
-        });
-      } else {
-        // Linux
-        exec('lpstat -a 2>/dev/null', (err, stdout) => {
-          if (err) return resolve([]);
-          const printers = [];
-          stdout.split('\n').forEach(line => {
-            const m = line.match(/^(\S+)\s/);
-            if (m) printers.push({ name: m[1], status: 'online' });
-          });
-          resolve(printers);
-        });
+  _getPrinterSettings() {
+    return (
+      this.store.get("printerSettings") || {
+        paperSize: "A4",
+        copies: 1,
+        colorMode: "bw",
+        sides: "single",
+        orientation: "portrait",
       }
-    });
+    );
   }
 
-  // ── CHECK PRINTER ONLINE ────────────────────────────────────────────────────
-  async isPrinterOnline(printerName) {
-    const printers = await this.listPrinters();
-    const p = printers.find(p => p.name === printerName);
-    return p?.status === 'online';
-  }
-
-  // ── PRINT FILE ──────────────────────────────────────────────────────────────
-  async printFile(filePath, options = {}) {
-    const {
-      printerName,
-      copies = 1,
-      sides = 'single',   // 'single' | 'double'
-      paperSize = 'A4',
-      colorMode = 'bw',   // 'bw' | 'colour'
-    } = options;
-
-    const printer = printerName || this.store.get('defaultPrinter');
-    if (!printer) throw new Error('No printer selected. Set a default printer in Settings.');
-
-    const online = await this.isPrinterOnline(printer);
-    if (!online) throw new Error(`Printer "${printer}" is offline or not found`);
-
-    const ext = path.extname(filePath).toLowerCase();
-
-    if (process.platform === 'win32') {
-      return this._printWindows(filePath, printer, { copies, sides, paperSize, colorMode, ext });
-    } else if (process.platform === 'darwin') {
-      return this._printMac(filePath, printer, { copies, sides, paperSize, colorMode });
-    } else {
-      return this._printLinux(filePath, printer, { copies, sides, paperSize, colorMode });
+  /** Return the hidden BrowserWindow used for printing, creating it if needed. */
+  async _ensurePrintWindow() {
+    if (this._printWindow && !this._printWindow.isDestroyed()) {
+      return this._printWindow;
     }
-  }
 
-  // ── WINDOWS PRINT ───────────────────────────────────────────────────────────
-  _printWindows(filePath, printer, opts) {
-    return new Promise((resolve, reject) => {
-      const { copies, sides, paperSize, colorMode, ext } = opts;
-
-      // For PDFs: use SumatraPDF (silent print) or Adobe Reader
-      // For images: use mspaint / powershell
-      let cmd;
-
-      if (ext === '.pdf') {
-        // Try SumatraPDF first (best for silent PDF printing on Windows)
-        const sumatraPath = '"C:\\Program Files\\SumatraPDF\\SumatraPDF.exe"';
-        const duplex = sides === 'double' ? '-duplex' : '';
-        cmd = `${sumatraPath} -print-to "${printer}" -print-settings "${copies}x,${paperSize}${duplex}" "${filePath}"`;
-
-        exec(cmd, (err) => {
-          if (err) {
-            // Fallback: PowerShell print
-            this._printWindowsPowerShell(filePath, printer, copies).then(resolve).catch(reject);
-          } else {
-            resolve({ ok: true, method: 'sumatra' });
-          }
-        });
-      } else {
-        // Images: use PowerShell
-        this._printWindowsPowerShell(filePath, printer, copies).then(resolve).catch(reject);
-      }
+    this._printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
     });
+
+    return this._printWindow;
   }
 
-  _printWindowsPowerShell(filePath, printer, copies) {
+  /** List all printers available on this computer. */
+  async listPrinters() {
+    const win = await this._ensurePrintWindow();
+    const printers = await win.webContents.getPrintersAsync();
+    return printers.map((p) => ({
+      name: p.name,
+      displayName: p.displayName || p.name,
+      isDefault: p.isDefault,
+      status: this._isOnline(p.status) ? "online" : "offline",
+    }));
+  }
+
+  _isOnline(status) {
+    // Chromium printer status 0 = idle/ready; undefined = unknown but assume ok
+    return status === 0 || status === undefined;
+  }
+
+  /**
+   * Verify a printer exists and is online.
+   * Throws a descriptive error if the printer is missing or offline.
+   * @param {string} [printerName] — overrides saved default
+   */
+  async verifyPrinter(printerName) {
+    const name = printerName || this.store.get("defaultPrinter");
+    if (!name) {
+      throw new Error("No printer selected. Choose a default printer in Settings.");
+    }
+
+    const printers = await this.listPrinters();
+    const printer = printers.find((p) => p.name === name);
+    if (!printer) {
+      throw new Error(`Printer "${name}" was not found on this computer.`);
+    }
+    if (printer.status !== "online") {
+      throw new Error(`Printer "${name}" is offline or unavailable.`);
+    }
+
+    return { name, printer };
+  }
+
+  /**
+   * Merge per-job overrides with saved defaults.
+   * Order options take priority over saved defaults.
+   */
+  resolvePrintOptions(orderOptions = {}) {
+    const saved = this._getPrinterSettings();
+    const defaultPrinter = this.store.get("defaultPrinter");
+
+    return {
+      printerName: orderOptions.printerName || defaultPrinter,
+      copies: orderOptions.copies ?? saved.copies ?? 1,
+      sides: orderOptions.sides || saved.sides || "single",
+      paperSize: orderOptions.paperSize || saved.paperSize || "A4",
+      colorMode: orderOptions.colorMode || saved.colorMode || "bw",
+      orientation: orderOptions.orientation || saved.orientation || "portrait",
+    };
+  }
+
+  _buildPrintSettings(options) {
+    return {
+      silent: true,
+      printBackground: true,
+      deviceName: options.printerName,
+      copies: Math.max(1, Number(options.copies) || 1),
+      landscape: options.orientation === "landscape",
+      color: options.colorMode !== "bw",
+      duplexMode: options.sides === "double" ? "longEdge" : "simplex",
+      pageSize: options.paperSize || "A4",
+    };
+  }
+
+  /**
+   * Print a PDF file using Electron's native printing API.
+   * Downloads PDF → loads in hidden window → sends to printer.
+   * Never uses PowerShell, SumatraPDF, or any external process.
+   *
+   * @param {string} filePath - Absolute path to the local PDF file
+   * @param {object} orderOptions - Print options (may be partial; merged with saved defaults)
+   */
+  async printPdf(filePath, orderOptions = {}) {
+    const options = this.resolvePrintOptions(orderOptions);
+    await this.verifyPrinter(options.printerName);
+
+    const win = await this._ensurePrintWindow();
+    const fileUrl = pathToFileURL(path.resolve(filePath)).href;
+
+    await this._loadPdf(win, fileUrl);
+    await this._waitForRender();
+
+    const printSettings = this._buildPrintSettings(options);
+
     return new Promise((resolve, reject) => {
-      const ps = `
-        $file = '${filePath.replace(/'/g, "''")}';
-        $printer = '${printer.replace(/'/g, "''")}';
-        $copies = ${copies};
-        try {
-          $psi = New-Object System.Drawing.Printing.PrintDocument
-          $psi.PrinterSettings.PrinterName = $printer
-          $psi.PrinterSettings.Copies = $copies
-          Start-Process -FilePath $file -Verb Print -Wait -WindowStyle Hidden
-          exit 0
-        } catch { exit 1 }
-      `;
-      exec(`powershell -command "${ps.replace(/\n/g,' ')}"`, (err) => {
-        if (err) reject(new Error('PowerShell print failed: ' + err.message));
-        else resolve({ ok: true, method: 'powershell' });
+      win.webContents.print(printSettings, (success, failureReason) => {
+        if (success) {
+          resolve({ ok: true, options });
+          return;
+        }
+        reject(
+          new Error(
+            failureReason || "Print failed or was cancelled by the system."
+          )
+        );
       });
     });
   }
 
-  // ── macOS PRINT ─────────────────────────────────────────────────────────────
-  _printMac(filePath, printer, opts) {
+  /**
+   * Open a visible preview window for a PDF.
+   * The window is shown to the shopkeeper for review before printing.
+   */
+  async previewPdf(filePath, title = "Document preview") {
+    const previewWin = new BrowserWindow({
+      width: 960,
+      height: 720,
+      title,
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    await previewWin.loadURL(pathToFileURL(path.resolve(filePath)).href);
+    return { ok: true };
+  }
+
+  _loadPdf(win, fileUrl) {
     return new Promise((resolve, reject) => {
-      const { copies, sides, paperSize, colorMode } = opts;
-      const sidesFlag = sides === 'double' ? '-o sides=two-sided-long-edge' : '-o sides=one-sided';
-      const colorFlag = colorMode === 'bw' ? '-o ColorModel=Gray' : '';
-      const cmd = `lpr -P "${printer}" -#${copies} -o media=${paperSize} ${sidesFlag} ${colorFlag} "${filePath}"`;
-      exec(cmd, (err) => {
-        if (err) reject(new Error('lpr failed: ' + err.message));
-        else resolve({ ok: true, method: 'lpr' });
-      });
+      const onLoad = () => {
+        cleanup();
+        resolve();
+      };
+      const onFail = (_, __, desc) => {
+        cleanup();
+        reject(new Error(desc || "Could not load the PDF for printing."));
+      };
+      const cleanup = () => {
+        win.webContents.removeListener("did-finish-load", onLoad);
+        win.webContents.removeListener("did-fail-load", onFail);
+      };
+
+      win.webContents.on("did-finish-load", onLoad);
+      win.webContents.on("did-fail-load", onFail);
+      win.loadURL(fileUrl);
     });
   }
 
-  // ── LINUX PRINT ─────────────────────────────────────────────────────────────
-  _printLinux(filePath, printer, opts) {
-    return new Promise((resolve, reject) => {
-      const { copies, sides, paperSize, colorMode } = opts;
-      const sidesFlag = sides === 'double' ? '-o sides=two-sided-long-edge' : '-o sides=one-sided';
-      const colorFlag = colorMode === 'bw' ? '-o ColorModel=Gray' : '';
-      const cmd = `lpr -P "${printer}" -#${copies} -o media=${paperSize} ${sidesFlag} ${colorFlag} "${filePath}"`;
-      exec(cmd, (err) => {
-        if (err) reject(new Error('lpr failed: ' + err.message));
-        else resolve({ ok: true, method: 'lpr' });
-      });
-    });
+  _waitForRender() {
+    return new Promise((resolve) => setTimeout(resolve, RENDER_DELAY_MS));
+  }
+
+  destroy() {
+    if (this._printWindow && !this._printWindow.isDestroyed()) {
+      this._printWindow.destroy();
+    }
+    this._printWindow = null;
   }
 }
 

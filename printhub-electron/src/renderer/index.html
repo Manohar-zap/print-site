@@ -17,7 +17,7 @@ html,body{height:100%;overflow:hidden}
 body{background:var(--black);color:var(--white);font-family:var(--font-b);font-size:13px;display:flex;flex-direction:column}
 button{cursor:pointer;font-family:var(--font-b)}
 
-/* ── TITLEBAR ─────────────────────────────────────────── */
+/* ── Titlebar ── */
 .titlebar{height:36px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;-webkit-app-region:drag;flex-shrink:0}
 .titlebar-logo{font-family:var(--font-h);font-size:14px;font-weight:800}
 .titlebar-logo span{color:var(--blue)}
@@ -27,10 +27,8 @@ button{cursor:pointer;font-family:var(--font-b)}
 .rt-dot.connected{background:var(--green);box-shadow:0 0 6px rgba(0,230,122,.5);animation:rtPulse 2s infinite}
 @keyframes rtPulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* ── LAYOUT ───────────────────────────────────────────── */
+/* ── Layout ── */
 .shell{display:flex;flex:1;overflow:hidden}
-
-/* ── SIDEBAR ──────────────────────────────────────────── */
 .sidebar{width:180px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
 .sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:3px}
 .sb-btn{display:flex;align-items:center;gap:8px;padding:9px 11px;border:none;background:transparent;color:var(--gray);font-size:12px;font-weight:500;border-radius:8px;width:100%;text-align:left;transition:all .2s;font-family:var(--font-b)}
@@ -39,23 +37,26 @@ button{cursor:pointer;font-family:var(--font-b)}
 .sb-btn .ic{font-size:15px;width:18px;text-align:center}
 .sb-badge{background:var(--red);color:#fff;border-radius:100px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto}
 .sb-footer{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-.ap-pill{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 8px;background:var(--surf2);border:1px solid var(--border);border-radius:8px}
-.ap-dot{width:6px;height:6px;border-radius:50%;background:var(--gray);flex-shrink:0}
-.ap-dot.on{background:var(--green)}
-.tgl{position:relative;width:36px;height:20px;flex-shrink:0;margin-left:auto}
-.tgl input{opacity:0;position:absolute}
-.tgl-t{position:absolute;inset:0;background:var(--border);border-radius:100px;cursor:pointer;transition:background .2s}
-.tgl-t::before{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
-.tgl input:checked + .tgl-t{background:var(--green)}
-.tgl input:checked + .tgl-t::before{transform:translateX(16px)}
 
-/* ── MAIN ─────────────────────────────────────────────── */
+/* ── Common Controls ── */
+.select{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:12px;outline:none;font-family:var(--font-b);width:100%}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-family:var(--font-b)}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-d)}
+.btn-g{background:var(--surf2);color:var(--gray);border:1px solid var(--border)}.btn-g:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
+.btn-ok{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2)}.btn-ok:hover{background:rgba(0,230,122,.2)}
+.btn-warn{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}.btn-warn:hover{background:rgba(255,170,0,.2)}
+.btn-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}.btn-err:hover{background:rgba(255,68,68,.2)}
+.btn-full{width:100%;justify-content:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Main area ── */
 .main{flex:1;overflow-y:auto;padding:20px}
 .page{display:none}
 .page.active{display:block}
-.page-title{font-family:var(--font-h);font-size:18px;font-weight:700;margin-bottom:16px}
+.page-title{font-family:var(--font-h);font-size:18px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--gray);margin-bottom:16px}
 
-/* ── LOGIN ────────────────────────────────────────────── */
+/* ── Login ── */
 #page-login{display:flex;align-items:center;justify-content:center;min-height:100%;padding:20px}
 .login-box{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:360px}
 .login-logo{font-family:var(--font-h);font-size:20px;font-weight:800;margin-bottom:4px}
@@ -67,73 +68,81 @@ button{cursor:pointer;font-family:var(--font-b)}
 .fi:focus{border-color:var(--blue)}
 .fi::placeholder{color:var(--gray)}
 
-/* ── BUTTONS ──────────────────────────────────────────── */
-.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-family:var(--font-b)}
-.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-d)}
-.btn-g{background:var(--surf2);color:var(--gray);border:1px solid var(--border)}.btn-g:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
-.btn-ok{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2)}.btn-ok:hover{background:rgba(0,230,122,.2)}
-.btn-warn{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
-.btn-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}.btn-err:hover{background:rgba(255,68,68,.2)}
-.btn-full{width:100%;justify-content:center}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-
-/* ── STATS ────────────────────────────────────────────── */
+/* ── Stats row ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .sc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px}
 .sc-l{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
 .sc-v{font-family:var(--font-h);font-size:22px;font-weight:700}
 .sc-s{font-size:10px;color:var(--gray);margin-top:2px}
 
-/* ── QUEUE ────────────────────────────────────────────── */
-.queue-list{display:flex;flex-direction:column;gap:8px}
-.qc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;transition:border-color .2s}
+/* ── No printer warning ── */
+.no-printer-warn{background:rgba(255,170,0,.07);border:1px solid rgba(255,170,0,.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* ── Queue cards ── */
+.queue-list{display:flex;flex-direction:column;gap:10px}
+.qc{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s}
 .qc.priority::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber)}
 .qc.printing{border-color:rgba(0,230,122,.3)}
-.qc-token{font-family:var(--font-h);font-size:22px;font-weight:800;color:var(--blue);min-width:46px}
+.qc.printed{border-color:rgba(0,230,122,.1);opacity:.75}
+.qc.cancelled{opacity:.5}
+.qc-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.qc-token{font-family:var(--font-h);font-size:24px;font-weight:800;color:var(--blue);min-width:52px;line-height:1}
 .qc-info{flex:1;min-width:0}
-.qc-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.qc-meta{font-size:11px;color:var(--gray);display:flex;gap:6px;flex-wrap:wrap}
-.qc-acts{display:flex;gap:6px;flex-shrink:0}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600}
-.b-w{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
-.b-d{background:rgba(26,107,255,.1);color:var(--blue);border:1px solid rgba(26,107,255,.2)}
-.b-p{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2);animation:blink 1.2s infinite}
-.b-done{background:rgba(0,230,122,.06);color:var(--green);border:1px solid rgba(0,230,122,.12)}
-.b-err{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
-.b-skip{background:rgba(255,255,255,.04);color:var(--gray);border:1px solid var(--border)}
-.b-pri{background:rgba(255,170,0,.12);color:var(--amber);border:1px solid rgba(255,170,0,.25);font-size:9px}
+.qc-name{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.qc-customer{font-size:11px;color:var(--gray);margin-bottom:6px}
+.qc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;font-size:11px;color:var(--gray)}
+.qc-grid strong{color:var(--white);font-weight:500}
+.qc-opts{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}
+.qc-opts select,.qc-opts input{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:5px 6px;color:var(--white);font-size:11px;font-family:var(--font-b);outline:none}
+.qc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.qc-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qc-hint{font-size:11px;color:var(--gray)}
+
+/* ── Status badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600;text-transform:capitalize}
+.b-pending{background:rgba(255,170,0,.1);color:var(--amber);border:1px solid rgba(255,170,0,.2)}
+.b-printing{background:rgba(0,230,122,.1);color:var(--green);border:1px solid rgba(0,230,122,.2);animation:blink 1.2s infinite}
+.b-printed{background:rgba(0,230,122,.06);color:var(--green);border:1px solid rgba(0,230,122,.12)}
+.b-failed{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.b-cancelled{background:rgba(255,255,255,.04);color:var(--gray);border:1px solid var(--border)}
+.b-pri{background:rgba(255,170,0,.12);color:var(--amber);border:1px solid rgba(255,170,0,.25);font-size:9px;margin-right:6px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
 .empty-q{text-align:center;padding:48px 20px;color:var(--gray)}
 .empty-q .ei{font-size:36px;margin-bottom:10px}
 
-/* ── PRINTER SELECT ───────────────────────────────────── */
-.select{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:12px;outline:none;font-family:var(--font-b);width:100%}
-
-/* ── HISTORY ──────────────────────────────────────────── */
+/* ── History table ── */
 .hist-table{width:100%;border-collapse:collapse;font-size:12px}
 .hist-table th{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
 .hist-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
 .hist-table tr:hover td{background:rgba(255,255,255,.02)}
 
-/* ── SETTINGS ─────────────────────────────────────────── */
+/* ── Settings ── */
 .settings-section{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px}
 .settings-section h4{font-family:var(--font-h);font-size:13px;font-weight:700;margin-bottom:14px}
 .setting-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
 .setting-row:last-child{border-bottom:none}
 .setting-row label{font-size:12px;color:var(--gray)}
+.tgl{position:relative;width:36px;height:20px;flex-shrink:0}
+.tgl input{opacity:0;position:absolute}
+.tgl-t{position:absolute;inset:0;background:var(--border);border-radius:100px;cursor:pointer;transition:background .2s}
+.tgl-t::before{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.tgl input:checked + .tgl-t{background:var(--green)}
+.tgl input:checked + .tgl-t::before{transform:translateX(16px)}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-/* ── TOAST ────────────────────────────────────────────── */
+/* ── Toasts ── */
 #toasts{position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
 .toast{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:12px;min-width:220px;animation:tIn .25s ease;display:flex;align-items:center;gap:8px}
 .toast.ok{border-color:rgba(0,230,122,.35)}.toast.err{border-color:rgba(255,68,68,.35)}.toast.inf{border-color:rgba(26,107,255,.35)}
 @keyframes tIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 
 <div id="toasts"></div>
 
-<!-- TITLEBAR -->
+<!-- ── Titlebar ── -->
 <div class="titlebar">
   <div class="titlebar-logo">Print<span>hub</span></div>
   <div class="titlebar-shop" id="tb-shop">Not connected</div>
@@ -145,7 +154,7 @@ button{cursor:pointer;font-family:var(--font-b)}
 
 <div class="shell">
 
-<!-- SIDEBAR -->
+<!-- ── Sidebar ── -->
 <div class="sidebar" id="sidebar" style="display:none">
   <div class="sb-nav">
     <button class="sb-btn active" onclick="showPage('queue')" id="nav-queue"><span class="ic">🖨</span>Queue<span class="sb-badge hidden" id="q-badge">0</span></button>
@@ -153,14 +162,6 @@ button{cursor:pointer;font-family:var(--font-b)}
     <button class="sb-btn" onclick="showPage('settings')" id="nav-settings"><span class="ic">⚙️</span>Settings</button>
   </div>
   <div class="sb-footer">
-    <div class="ap-pill">
-      <div class="ap-dot" id="ap-dot"></div>
-      <span id="ap-lbl" style="font-size:11px;color:var(--gray)">Auto-print</span>
-      <label class="tgl">
-        <input type="checkbox" id="ap-toggle" onchange="toggleAP(this.checked)"/>
-        <div class="tgl-t"></div>
-      </label>
-    </div>
     <select class="select" onchange="setShopStatus(this.value)" id="status-sel">
       <option value="open">🟢 Open</option>
       <option value="busy">🟡 Busy</option>
@@ -171,51 +172,59 @@ button{cursor:pointer;font-family:var(--font-b)}
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main">
 
-  <!-- LOGIN -->
+  <!-- ── Login page ── -->
   <div id="page-login" class="page active" style="display:flex">
     <div class="login-box">
       <div class="login-logo">Print<span>hub</span></div>
-      <div class="login-sub">Shop owner desktop app — sign in to start auto-printing</div>
+      <div class="login-sub">Shop print dashboard — review orders and print manually</div>
       <div class="fl"><label>Email</label><input class="fi" type="email" id="l-email" placeholder="owner@shop.com"/></div>
       <div class="fl"><label>Password</label><input class="fi" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/></div>
-      <button class="btn btn-p btn-full" style="margin-top:4px" onclick="login()">Login & connect →</button>
-      <p style="margin-top:12px;font-size:11px;color:var(--gray);text-align:center">Runs silently in your system tray after login</p>
+      <button class="btn btn-p btn-full" id="login-btn" style="margin-top:4px" onclick="login()">Login &amp; connect →</button>
+      <p style="margin-top:12px;font-size:11px;color:var(--gray);text-align:center">Runs in your system tray — you control every print job</p>
     </div>
   </div>
 
-  <!-- QUEUE -->
+  <!-- ── Queue page ── -->
   <div id="page-queue" class="page">
-    <div class="page-title">Live Print Queue</div>
-    <div class="stats-row">
-      <div class="sc"><div class="sc-l">Waiting</div><div class="sc-v" id="st-waiting">0</div><div class="sc-s">in queue</div></div>
-      <div class="sc"><div class="sc-l">Printed today</div><div class="sc-v" id="st-done">0</div><div class="sc-s">completed</div></div>
-      <div class="sc"><div class="sc-l">Failed</div><div class="sc-v" id="st-failed" style="color:var(--red)">0</div><div class="sc-s">need retry</div></div>
-      <div class="sc"><div class="sc-l">Printer</div><div class="sc-v" id="st-printer" style="font-size:12px;padding-top:4px">—</div><div class="sc-s">active</div></div>
+    <div class="page-title">Print Queue</div>
+    <div class="page-sub">New orders appear here. Review each job and click Print when ready.</div>
+
+    <!-- No-printer warning banner (hidden by default) -->
+    <div id="no-printer-warn" class="no-printer-warn hidden">
+      ⚠️ No default printer selected — <button class="btn btn-warn" style="padding:3px 10px;font-size:11px;margin-left:4px" onclick="showPage('settings')">Go to Settings</button>
     </div>
+
+    <div class="stats-row">
+      <div class="sc"><div class="sc-l">Pending</div><div class="sc-v" id="st-pending">0</div><div class="sc-s">awaiting print</div></div>
+      <div class="sc"><div class="sc-l">Printing</div><div class="sc-v" id="st-printing">0</div><div class="sc-s">in progress</div></div>
+      <div class="sc"><div class="sc-l">Printed today</div><div class="sc-v" id="st-done">0</div><div class="sc-s">completed</div></div>
+      <div class="sc"><div class="sc-l">Printer</div><div class="sc-v" id="st-printer" style="font-size:12px;padding-top:4px">—</div><div class="sc-s">default</div></div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <strong style="font-size:13px;font-family:var(--font-h)">Jobs</strong>
+      <strong style="font-size:13px;font-family:var(--font-h)">Orders</strong>
       <button class="btn btn-g" style="font-size:11px" onclick="refreshQueue()">↻ Refresh</button>
     </div>
     <div class="queue-list" id="queue-list">
-      <div class="empty-q"><div class="ei">✅</div><p>Queue is empty — new jobs appear here automatically</p></div>
+      <div class="empty-q"><div class="ei">✅</div><p>No pending orders — new jobs will appear here</p></div>
     </div>
   </div>
 
-  <!-- HISTORY -->
+  <!-- ── History page ── -->
   <div id="page-history" class="page">
     <div class="page-title">Print History</div>
+    <div class="page-sub">Recently printed, failed, or cancelled orders from the last 24 hours</div>
     <div style="background:var(--surf);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       <table class="hist-table">
-        <thead><tr><th>Token</th><th>File</th><th>Copies</th><th>Color</th><th>Status</th><th>Retries</th><th>Time</th></tr></thead>
+        <thead><tr><th>Token</th><th>File</th><th>Customer</th><th>Details</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
         <tbody id="hist-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">No history yet</td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <!-- SETTINGS -->
+  <!-- ── Settings page ── -->
   <div id="page-settings" class="page">
     <div class="page-title">Settings</div>
 
@@ -223,7 +232,7 @@ button{cursor:pointer;font-family:var(--font-b)}
       <h4>Default Printer</h4>
       <div class="fl">
         <label>Select printer</label>
-        <select class="select" id="printer-select" onchange="window.ph.setDefaultPrinter(this.value).then(()=>toast('Default printer saved','ok'))">
+        <select class="select" id="printer-select" onchange="saveDefaultPrinter(this.value)">
           <option value="">Loading printers…</option>
         </select>
       </div>
@@ -231,24 +240,22 @@ button{cursor:pointer;font-family:var(--font-b)}
     </div>
 
     <div class="settings-section">
-      <h4>Auto-print</h4>
-      <div class="setting-row">
-        <label>Enable auto-print on new job</label>
-        <label class="tgl"><input type="checkbox" id="s-autoprint" onchange="saveSetting('autoPrint',this.checked)"/><div class="tgl-t"></div></label>
+      <h4>Default print options</h4>
+      <p style="font-size:11px;color:var(--gray);margin-bottom:12px">These defaults populate each new order. You can change them per order before printing.</p>
+      <div class="settings-grid">
+        <div class="fl"><label>Paper size</label><select class="select" id="s-paper" onchange="savePrinterSetting('paperSize',this.value)"><option>A4</option><option>A3</option><option>Letter</option><option>Legal</option></select></div>
+        <div class="fl"><label>Copies</label><input class="fi" type="number" id="s-copies" min="1" max="99" onchange="savePrinterSetting('copies',parseInt(this.value)||1)"/></div>
+        <div class="fl"><label>Color</label><select class="select" id="s-color" onchange="savePrinterSetting('colorMode',this.value)"><option value="bw">Black &amp; White</option><option value="colour">Colour</option></select></div>
+        <div class="fl"><label>Duplex</label><select class="select" id="s-duplex" onchange="savePrinterSetting('sides',this.value)"><option value="single">Single-sided</option><option value="double">Double-sided</option></select></div>
+        <div class="fl"><label>Orientation</label><select class="select" id="s-orient" onchange="savePrinterSetting('orientation',this.value)"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
       </div>
+    </div>
+
+    <div class="settings-section">
+      <h4>Notifications</h4>
       <div class="setting-row">
-        <label>Show desktop notification per job</label>
+        <label>Show desktop notification for new orders</label>
         <label class="tgl"><input type="checkbox" id="s-notif" onchange="saveSetting('notifications',this.checked)"/><div class="tgl-t"></div></label>
-      </div>
-      <div class="setting-row">
-        <label>Delete temp file after print</label>
-        <label class="tgl"><input type="checkbox" id="s-delete" onchange="saveSetting('deleteTempAfterPrint',this.checked)"/><div class="tgl-t"></div></label>
-      </div>
-      <div class="setting-row">
-        <label>Max auto-retries per job</label>
-        <select class="select" style="width:80px" id="s-retries" onchange="saveSetting('maxRetries',parseInt(this.value))">
-          <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
-        </select>
       </div>
     </div>
 
@@ -263,28 +270,36 @@ button{cursor:pointer;font-family:var(--font-b)}
     </div>
   </div>
 
-</div><!-- /main -->
-</div><!-- /shell -->
+</div>
+</div>
 
 <script>
-let queueJobs = [];
-let doneCount = 0;
-let failedCount = 0;
+'use strict';
 
-// ── UTILS ──────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
+
+let queueJobs = [];
+let printerSettings = {};
+let defaultPrinter = null;
+
+// ─── Toast notifications ──────────────────────────────────────────────────────
+
 function toast(msg, type = 'inf') {
-  const ic = {ok:'✓',err:'✕',inf:'ℹ'};
+  const icons = { ok: '✓', err: '✕', inf: 'ℹ' };
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<span>${ic[type]}</span>${msg}`;
+  el.innerHTML = `<span>${icons[type]}</span>${msg}`;
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => el.remove(), 4000);
 }
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
 
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
   document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
   const pg = document.getElementById(`page-${name}`);
+  if (!pg) return;
   pg.style.display = 'block';
   pg.classList.add('active');
   document.getElementById(`nav-${name}`)?.classList.add('active');
@@ -292,38 +307,60 @@ function showPage(name) {
   if (name === 'settings') loadSettings();
 }
 
-function timeAgo(ts) {
-  const d = (Date.now() - ts) / 1000;
-  if (d < 60) return 'just now';
-  if (d < 3600) return Math.floor(d/60)+'m ago';
-  return Math.floor(d/3600)+'h ago';
+// ─── Formatting helpers ───────────────────────────────────────────────────────
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function labelColor(mode) { return mode === 'bw' ? 'B&W' : 'Colour'; }
+function labelDuplex(sides) { return sides === 'double' ? 'Duplex' : 'Single'; }
+function labelOrient(o) { return o === 'landscape' ? 'Landscape' : 'Portrait'; }
+
+// ─── Read per-card overrides ──────────────────────────────────────────────────
+
+function getCardOptions(orderId) {
+  return {
+    copies:      parseInt(document.getElementById(`copies-${orderId}`)?.value) || 1,
+    paperSize:   document.getElementById(`paper-${orderId}`)?.value  || 'A4',
+    colorMode:   document.getElementById(`color-${orderId}`)?.value  || 'bw',
+    sides:       document.getElementById(`duplex-${orderId}`)?.value || 'single',
+    orientation: document.getElementById(`orient-${orderId}`)?.value || 'portrait',
+  };
 }
 
-// ── LOGIN ──────────────────────────────────────────────────
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
 async function login() {
   const email = document.getElementById('l-email').value.trim();
-  const pass = document.getElementById('l-pass').value;
+  const pass  = document.getElementById('l-pass').value;
   if (!email || !pass) return toast('Fill in all fields', 'err');
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
   toast('Connecting…', 'inf');
+
   const res = await window.ph.login({ email, password: pass });
+  btn.disabled = false;
+  btn.textContent = 'Login & connect →';
+
   if (!res.ok) return toast(res.error, 'err');
   onLoggedIn(res.shop);
 }
 
-function onLoggedIn(shop) {
+async function onLoggedIn(shop) {
   document.getElementById('tb-shop').textContent = shop.name;
   document.getElementById('status-sel').value = shop.status;
-  const ap = shop.auto_print;
-  document.getElementById('ap-toggle').checked = ap;
-  document.getElementById('ap-dot').className = 'ap-dot' + (ap ? ' on' : '');
-  document.getElementById('ap-lbl').textContent = ap ? 'Auto ON' : 'Auto OFF';
-
   document.getElementById('page-login').style.display = 'none';
   document.getElementById('page-login').classList.remove('active');
   document.getElementById('sidebar').style.display = 'flex';
   showPage('queue');
-
-  loadPrinters();
+  printerSettings = await window.ph.getPrinterSettings();
+  defaultPrinter  = await window.ph.getDefaultPrinter();
+  updatePrinterStat();
+  updateNoPrinterWarning();
+  await loadPrintersQuiet();
   refreshQueue();
   toast(`Connected to ${shop.name}`, 'ok');
 }
@@ -338,7 +375,8 @@ async function logout() {
   renderQueue();
 }
 
-// ── QUEUE ──────────────────────────────────────────────────
+// ─── Queue ────────────────────────────────────────────────────────────────────
+
 async function refreshQueue() {
   queueJobs = await window.ph.getQueue();
   renderQueue();
@@ -347,114 +385,232 @@ async function refreshQueue() {
 
 function renderQueue() {
   const el = document.getElementById('queue-list');
-  const active = queueJobs.filter(j => !['done','skipped'].includes(j.state));
-  if (!active.length) {
-    el.innerHTML = '<div class="empty-q"><div class="ei">✅</div><p>Queue is empty — new jobs appear automatically</p></div>';
-    return;
+  // Show all non-cancelled orders in the queue (pending, printing, failed, printed)
+  const visible = queueJobs.filter(j => j.state !== 'cancelled');
+  if (!visible.length) {
+    el.innerHTML = '<div class="empty-q"><div class="ei">✅</div><p>No orders — new jobs will appear here automatically</p></div>';
+  } else {
+    el.innerHTML = '';
+    visible.forEach(job => el.appendChild(buildCard(job)));
   }
-  el.innerHTML = '';
-  active.forEach(job => {
-    const badgeClass = {waiting:'b-w',downloading:'b-d',printing:'b-p',done:'b-done',failed:'b-err',skipped:'b-skip'}[job.state] || 'b-w';
-    const card = document.createElement('div');
-    card.className = 'qc' + (job.isPriority ? ' priority' : '') + (job.state === 'printing' ? ' printing' : '');
-    card.innerHTML = `
+
+  const count = queueJobs.filter(j => j.state === 'pending').length;
+  const badge = document.getElementById('q-badge');
+  badge.textContent = count;
+  badge.classList.toggle('hidden', count === 0);
+}
+
+function buildCard(job) {
+  const card = document.createElement('div');
+  let cls = 'qc';
+  if (job.isPriority) cls += ' priority';
+  if (job.state === 'printing') cls += ' printing';
+  if (job.state === 'printed')  cls += ' printed';
+  if (job.state === 'cancelled') cls += ' cancelled';
+  card.className = cls;
+
+  // Per-card defaults: use job values, then saved printer settings
+  const copies = job.copies ?? printerSettings.copies ?? 1;
+  const paper  = job.paperSize  || printerSettings.paperSize  || 'A4';
+  const color  = job.colorMode  || printerSettings.colorMode  || 'bw';
+  const duplex = job.sides      || printerSettings.sides      || 'single';
+  const orient = job.orientation || printerSettings.orientation || 'portrait';
+
+  // Only show editable options for jobs that can still be printed
+  const canEdit = job.state === 'pending' || job.state === 'failed';
+
+  card.innerHTML = `
+    <div class="qc-head">
       <div class="qc-token">${job.token || '—'}</div>
       <div class="qc-info">
-        <div class="qc-name">${job.isPriority ? '<span class="badge b-pri">⚡PRIORITY</span> ' : ''}${job.file_name}</div>
-        <div class="qc-meta">
-          <span>${job.copies} cop${job.copies>1?'ies':'y'}</span>
-          <span>·</span><span>${job.colorMode === 'bw' ? 'B&W' : 'Colour'}</span>
-          <span>·</span><span>${job.paperSize}</span>
-          <span>·</span><span>${timeAgo(job.addedAt)}</span>
-          ${job.retries > 0 ? `<span>·</span><span style="color:var(--amber)">Retry ${job.retries}/${job.maxRetries}</span>` : ''}
+        <div class="qc-name">${job.isPriority ? '<span class="badge b-pri">PRIORITY</span>' : ''}${job.file_name}</div>
+        <div class="qc-customer">${job.customerName ? 'Customer: ' + job.customerName : 'Customer: —'}</div>
+        <div class="qc-grid">
+          <div>Uploaded<br><strong>${formatTime(job.uploadedAt)}</strong></div>
+          <div>Copies<br><strong>${copies}</strong></div>
+          <div>Paper<br><strong>${paper}</strong></div>
+          <div>Color<br><strong>${labelColor(color)}</strong></div>
+          <div>Duplex<br><strong>${labelDuplex(duplex)}</strong></div>
+          <div>Orientation<br><strong>${labelOrient(orient)}</strong></div>
         </div>
       </div>
-      <span class="badge ${badgeClass}">${job.state}</span>
-      <div class="qc-acts">
-        ${job.state === 'waiting' ? `<button class="btn btn-ok" style="font-size:11px" onclick="printNow('${job.orderId}')">🖨 Print</button>` : ''}
-        ${job.state === 'failed' && job.retries < job.maxRetries ? `<button class="btn btn-warn" style="font-size:11px" onclick="retryJob('${job.orderId}')">↻ Retry</button>` : ''}
-        ${job.state === 'failed' && job.retries >= job.maxRetries ? `<span style="font-size:11px;color:var(--red)">Max retries</span>` : ''}
-        ${['waiting','failed'].includes(job.state) ? `<button class="btn btn-g" style="font-size:11px" onclick="skipJob('${job.orderId}')">Skip</button>` : ''}
-      </div>
-    `;
-    el.appendChild(card);
-  });
+      <span class="badge b-${job.state}">${job.state}</span>
+    </div>
+    ${canEdit ? `
+    <div class="qc-opts">
+      <input type="number" id="copies-${job.orderId}" min="1" max="99" value="${copies}" title="Copies"/>
+      <select id="paper-${job.orderId}"><option ${paper==='A4'?'selected':''}>A4</option><option ${paper==='A3'?'selected':''}>A3</option><option ${paper==='Letter'?'selected':''}>Letter</option><option ${paper==='Legal'?'selected':''}>Legal</option></select>
+      <select id="color-${job.orderId}"><option value="bw" ${color==='bw'?'selected':''}>B&amp;W</option><option value="colour" ${color==='colour'?'selected':''}>Colour</option></select>
+      <select id="duplex-${job.orderId}"><option value="single" ${duplex==='single'?'selected':''}>Single</option><option value="double" ${duplex==='double'?'selected':''}>Duplex</option></select>
+      <select id="orient-${job.orderId}"><option value="portrait" ${orient==='portrait'?'selected':''}>Portrait</option><option value="landscape" ${orient==='landscape'?'selected':''}>Landscape</option></select>
+    </div>` : ''}
+    ${job.error ? `<div style="font-size:11px;color:var(--red);margin-bottom:8px">⚠ ${job.error}</div>` : ''}
+    <div class="qc-foot">
+      <span class="qc-hint">Manual print only — you control every job</span>
+      <div class="qc-acts">${renderCardActions(job)}</div>
+    </div>`;
 
-  // Update badge
-  const waiting = active.filter(j => j.state === 'waiting').length;
-  const badge = document.getElementById('q-badge');
-  badge.textContent = waiting;
-  badge.classList.toggle('hidden', waiting === 0);
+  return card;
+}
+
+function renderCardActions(job) {
+  switch (job.state) {
+    case 'printing':
+      return '<span style="font-size:11px;color:var(--green);animation:blink 1.2s infinite">🖨 Printing…</span>';
+
+    case 'pending':
+    case 'failed':
+      return `
+        <button class="btn btn-g" style="font-size:11px" onclick="previewOrder('${job.orderId}')">Preview</button>
+        <button class="btn btn-ok" style="font-size:11px" id="print-btn-${job.orderId}" onclick="printOrder('${job.orderId}')">Print</button>
+        <button class="btn btn-err" style="font-size:11px" onclick="cancelOrder('${job.orderId}')">Cancel</button>`;
+
+    case 'printed':
+      return `
+        <button class="btn btn-warn" style="font-size:11px" onclick="reprintOrder('${job.orderId}')">Reprint</button>
+        <button class="btn btn-err" style="font-size:11px" onclick="deleteOrder('${job.orderId}')">Delete</button>`;
+
+    case 'cancelled':
+      return `<button class="btn btn-err" style="font-size:11px" onclick="deleteOrder('${job.orderId}')">Delete</button>`;
+
+    default:
+      return '';
+  }
 }
 
 function updateStats() {
-  const active = queueJobs.filter(j => j.state === 'waiting').length;
-  doneCount = queueJobs.filter(j => j.state === 'done').length;
-  failedCount = queueJobs.filter(j => j.state === 'failed').length;
-  document.getElementById('st-waiting').textContent = active;
-  document.getElementById('st-done').textContent = doneCount;
-  document.getElementById('st-failed').textContent = failedCount;
+  document.getElementById('st-pending').textContent  = queueJobs.filter(j => j.state === 'pending').length;
+  document.getElementById('st-printing').textContent = queueJobs.filter(j => j.state === 'printing').length;
+  document.getElementById('st-done').textContent     = queueJobs.filter(j => j.state === 'printed').length;
 }
 
-async function printNow(orderId) {
-  toast('Sending to printer…', 'inf');
-  const res = await window.ph.printNow(orderId);
+// ─── Order actions ────────────────────────────────────────────────────────────
+
+async function previewOrder(orderId) {
+  toast('Opening preview…', 'inf');
+  const res = await window.ph.previewOrder(orderId);
   if (!res.ok) toast(res.error, 'err');
-  setTimeout(refreshQueue, 1000);
 }
 
-async function skipJob(orderId) {
-  await window.ph.skipJob(orderId);
-  await refreshQueue();
-  toast('Job skipped', 'inf');
+async function printOrder(orderId) {
+  const btn = document.getElementById(`print-btn-${orderId}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Printing…'; }
+
+  const res = await window.ph.printOrder(orderId, getCardOptions(orderId));
+  // The main process shows a native error dialog on failure; toast is supplemental
+  if (!res.ok) toast(res.error, 'err');
+  else toast('Print completed ✓', 'ok');
+  // Queue will refresh via queue-changed event; do a full refresh as backup
+  refreshQueue();
 }
 
-async function retryJob(orderId) {
-  const res = await window.ph.retryJob(orderId);
+async function cancelOrder(orderId) {
+  if (!confirm('Cancel this order?')) return;
+  const res = await window.ph.cancelOrder(orderId);
   if (!res.ok) return toast(res.error, 'err');
-  toast('Job re-queued', 'ok');
-  await refreshQueue();
+  toast('Order cancelled', 'inf');
+  refreshQueue();
 }
 
-// ── HISTORY ───────────────────────────────────────────────
+async function reprintOrder(orderId) {
+  toast('Reprinting…', 'inf');
+  const res = await window.ph.reprintOrder(orderId, printerSettings);
+  if (!res.ok) toast(res.error, 'err');
+  else toast('Reprint completed ✓', 'ok');
+  refreshQueue();
+}
+
+async function deleteOrder(orderId) {
+  if (!confirm('Remove this order from the dashboard?')) return;
+  const res = await window.ph.deleteOrder(orderId);
+  if (!res.ok) return toast(res.error, 'err');
+  toast('Order removed', 'inf');
+  refreshQueue();
+}
+
+// ─── History ──────────────────────────────────────────────────────────────────
+
 function renderHistory() {
-  const done = queueJobs.filter(j => j.state === 'done' || j.state === 'failed' || j.state === 'skipped');
+  const history = queueJobs.filter(j => ['printed', 'failed', 'cancelled'].includes(j.state));
   const tbody = document.getElementById('hist-body');
-  if (!done.length) {
+  if (!history.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray)">No completed jobs yet</td></tr>';
     return;
   }
-  tbody.innerHTML = done.slice().reverse().map(j => `
+  tbody.innerHTML = history.slice().reverse().map(j => `
     <tr>
-      <td><strong style="color:var(--blue);font-family:var(--font-h)">${j.token||'—'}</strong></td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.file_name}</td>
-      <td>${j.copies}</td>
-      <td>${j.colorMode === 'bw' ? 'B&W' : 'Colour'}</td>
-      <td><span class="badge ${{done:'b-done',failed:'b-err',skipped:'b-skip'}[j.state]||'b-w'}">${j.state}</span></td>
-      <td style="color:var(--gray)">${j.retries}/${j.maxRetries}</td>
-      <td style="color:var(--gray)">${timeAgo(j.addedAt)}</td>
+      <td><strong style="color:var(--blue);font-family:var(--font-h)">${j.token || '—'}</strong></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.file_name}">${j.file_name}</td>
+      <td>${j.customerName || '—'}</td>
+      <td style="color:var(--gray);font-size:11px">${j.copies}× · ${j.paperSize} · ${labelColor(j.colorMode)} · ${labelDuplex(j.sides)}</td>
+      <td><span class="badge b-${j.state}">${j.state}</span></td>
+      <td style="color:var(--gray)">${formatTime(j.uploadedAt)}</td>
+      <td>
+        ${j.state === 'printed' || j.state === 'failed' ? `<button class="btn btn-warn" style="font-size:11px;padding:4px 10px" onclick="reprintOrder('${j.orderId}')">Reprint</button>` : ''}
+        <button class="btn btn-err" style="font-size:11px;padding:4px 10px" onclick="deleteOrder('${j.orderId}')">Delete</button>
+      </td>
     </tr>
   `).join('');
 }
 
-// ── PRINTERS ──────────────────────────────────────────────
+// ─── Printers & Settings ──────────────────────────────────────────────────────
+
 async function loadPrinters() {
-  const printers = await window.ph.listPrinters();
   const sel = document.getElementById('printer-select');
-  const def = await window.ph.getDefaultPrinter();
+  sel.innerHTML = '<option value="">Loading…</option>';
+  const printers = await window.ph.listPrinters();
+  defaultPrinter  = await window.ph.getDefaultPrinter();
   sel.innerHTML = '<option value="">Select a printer…</option>' +
-    printers.map(p => `<option value="${p.name}" ${p.name === def ? 'selected' : ''}>${p.name} (${p.status})</option>`).join('');
-  document.getElementById('st-printer').textContent = def || '—';
+    printers.map(p => `<option value="${p.name}" ${p.name === defaultPrinter ? 'selected' : ''}>${p.displayName || p.name} (${p.status})</option>`).join('');
+  updatePrinterStat();
+  updateNoPrinterWarning();
 }
 
-// ── SETTINGS ──────────────────────────────────────────────
+/** Silent version of loadPrinters — used on login, doesn't reset the dropdown */
+async function loadPrintersQuiet() {
+  const printers = await window.ph.listPrinters();
+  defaultPrinter  = await window.ph.getDefaultPrinter();
+  updatePrinterStat();
+  updateNoPrinterWarning();
+}
+
+function updatePrinterStat() {
+  document.getElementById('st-printer').textContent = defaultPrinter
+    ? defaultPrinter.slice(0, 18)
+    : '—';
+}
+
+function updateNoPrinterWarning() {
+  const warn = document.getElementById('no-printer-warn');
+  warn.classList.toggle('hidden', !!defaultPrinter);
+}
+
+async function saveDefaultPrinter(name) {
+  if (!name) return;
+  await window.ph.setDefaultPrinter(name);
+  defaultPrinter = name;
+  updatePrinterStat();
+  updateNoPrinterWarning();
+  toast('Default printer saved', 'ok');
+}
+
 async function loadSettings() {
+  printerSettings = await window.ph.getPrinterSettings();
+  document.getElementById('s-paper').value  = printerSettings.paperSize  || 'A4';
+  document.getElementById('s-copies').value = printerSettings.copies     || 1;
+  document.getElementById('s-color').value  = printerSettings.colorMode  || 'bw';
+  document.getElementById('s-duplex').value = printerSettings.sides      || 'single';
+  document.getElementById('s-orient').value = printerSettings.orientation || 'portrait';
   const s = await window.ph.getSettings();
-  document.getElementById('s-autoprint').checked = s.autoPrint ?? true;
-  document.getElementById('s-notif').checked = s.notifications ?? true;
-  document.getElementById('s-delete').checked = s.deleteTempAfterPrint ?? true;
-  document.getElementById('s-retries').value = s.maxRetries ?? 3;
+  document.getElementById('s-notif').checked = s.notifications !== false;
   document.getElementById('s-platform').textContent = navigator.platform;
+  loadPrinters();
+}
+
+async function savePrinterSetting(key, val) {
+  printerSettings[key] = val;
+  await window.ph.savePrinterSettings(printerSettings);
+  toast('Print defaults saved', 'ok');
 }
 
 async function saveSetting(key, val) {
@@ -464,19 +620,13 @@ async function saveSetting(key, val) {
   toast('Setting saved', 'ok');
 }
 
-async function toggleAP(val) {
-  await window.ph.setAutoPrint(val);
-  document.getElementById('ap-dot').className = 'ap-dot' + (val ? ' on' : '');
-  document.getElementById('ap-lbl').textContent = val ? 'Auto ON' : 'Auto OFF';
-  toast(val ? 'Auto-print enabled' : 'Auto-print paused', 'ok');
-}
-
 async function setShopStatus(status) {
   await window.ph.setShopStatus(status);
   toast(`Shop status → ${status}`, 'ok');
 }
 
-// ── EVENTS FROM MAIN ───────────────────────────────────────
+// ─── IPC Events from main process ─────────────────────────────────────────────
+
 window.ph.on('shop-loaded', (shop) => onLoggedIn(shop));
 
 window.ph.on('new-order', (order) => {
@@ -491,36 +641,46 @@ window.ph.on('queue-changed', (jobs) => {
 });
 
 window.ph.on('job-start', (job) => {
-  toast(`🖨 Printing ${job.token}…`, 'inf');
+  toast(`Printing ${job.token}…`, 'inf');
   refreshQueue();
 });
 
 window.ph.on('job-done', (job) => {
-  toast(`✓ Done: ${job.token}`, 'ok');
+  toast(`Printed ${job.token} ✓`, 'ok');
   refreshQueue();
 });
 
 window.ph.on('job-failed', ({ job, error }) => {
-  toast(`✕ Failed ${job.token}: ${error}`, 'err');
+  toast(`Failed ${job.token}: ${error}`, 'err');
   refreshQueue();
 });
 
 window.ph.on('realtime-status', (status) => {
   const connected = status === 'SUBSCRIBED';
-  document.getElementById('rt-dot').className = 'rt-dot' + (connected ? ' connected' : '');
+  document.getElementById('rt-dot').className   = 'rt-dot' + (connected ? ' connected' : '');
   document.getElementById('rt-label').textContent = connected ? 'Live' : 'Offline';
 });
 
 window.ph.on('nav', (page) => showPage(page));
 
-// ── AUTO-LOGIN ─────────────────────────────────────────────
+// ─── Startup — check if main process already restored a session ──────────────
+// The main process attempts session restore on launch. If it succeeds it emits
+// 'shop-loaded', which calls onLoggedIn() via the event listener below.
+// We only prompt the login form if no saved session token exists.
 (async () => {
-  const saved = await window.ph.getSavedCreds();
-  if (saved) {
-    toast('Auto-connecting…', 'inf');
-    const res = await window.ph.login({ email: saved.email, password: saved.password });
-    if (res.ok) onLoggedIn(res.shop);
+  const savedSession = await window.ph.getSavedSession();
+  if (!savedSession) {
+    // No stored session — show login form and wait for manual login
+    return;
   }
+  // A session token exists. Main process is restoring it. Show brief status.
+  toast('Reconnecting…', 'inf');
+  // If main restores successfully it fires 'shop-loaded' → onLoggedIn().
+  // If it fails within 5 seconds, prompt for manual login.
+  const timeout = setTimeout(() => {
+    toast('Session expired — please log in again', 'inf');
+  }, 5000);
+  window.ph.on('shop-loaded', () => clearTimeout(timeout));
 })();
 </script>
 </body>

@@ -252,13 +252,7 @@ body{background:var(--black);color:var(--white);font-family:var(--font-b);font-s
       <div class="page active" id="page-queue">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div class="page-title" style="margin-bottom:0">Print Queue</div>
-          <div class="auto-toggle-row">
-            <span>Auto-print</span>
-            <label class="toggle-wrap">
-              <input type="checkbox" id="auto-print-toggle" checked onchange="toggleAutoPrint(this.checked)"/>
-              <div class="toggle-track"></div>
-            </label>
-          </div>
+          <span style="font-size:12px;color:var(--gray)">Use the desktop app to print manually</span>
         </div>
 
         <!-- Stats strip -->
@@ -404,20 +398,9 @@ body{background:var(--black);color:var(--white);font-family:var(--font-b);font-s
         </div>
 
         <div class="settings-section">
-          <div class="settings-title">Print settings</div>
+          <div class="settings-title">Print workflow</div>
           <div class="setting-row">
-            <div class="setting-info"><div class="setting-name">Auto-print new jobs</div><div class="setting-desc">Automatically print when a new paid order arrives</div></div>
-            <label class="toggle-wrap">
-              <input type="checkbox" id="s-autoprint" checked onchange="saveSetting('auto_print',this.checked)"/>
-              <div class="toggle-track"></div>
-            </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-info"><div class="setting-name">Manual approval mode</div><div class="setting-desc">Require your confirmation before each print</div></div>
-            <label class="toggle-wrap">
-              <input type="checkbox" id="s-manual" onchange="saveSetting('manual_mode',this.checked)"/>
-              <div class="toggle-track"></div>
-            </label>
+            <div class="setting-info"><div class="setting-name">Manual printing</div><div class="setting-desc">Orders appear in the desktop app. Print each job from there when ready.</div></div>
           </div>
         </div>
 
@@ -449,7 +432,6 @@ var SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) ? windo
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null, currentShop = null;
-let autoPrint = true;
 let realtimeChannel = null;
 let queueJobs = [];
 
@@ -544,9 +526,6 @@ function subscribeRealtime() {
       toast(`New order: ${payload.new.file_name}`, 'info');
       loadQueue();
       loadDayStats();
-      if (autoPrint && payload.new.payment_status === 'paid') {
-        markPrinting(payload.new.id);
-      }
     })
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'orders',
@@ -677,22 +656,8 @@ async function markComplete(id) {
 }
 
 async function markFailed(id) {
-  const job = queueJobs.find(j => j.id === id);
-  const retries = (job?.retry_count || 0) + 1;
-  if (retries >= 3) {
-    await sb.from('orders').update({ status: 'failed', retry_count: retries }).eq('id', id);
-    toast('Order marked failed (max retries reached)', 'error');
-  } else {
-    await sb.from('orders').update({ status: 'queued', retry_count: retries }).eq('id', id);
-    toast(`Retry ${retries}/3 — back in queue`, 'info');
-  }
-}
-
-async function toggleAutoPrint(val) {
-  autoPrint = val;
-  document.getElementById('s-autoprint').checked = val;
-  await sb.from('shops').update({ auto_print: val }).eq('id', currentShop.id);
-  toast(`Auto-print ${val ? 'enabled' : 'disabled'}`, 'info');
+  await sb.from('orders').update({ status: 'failed' }).eq('id', id);
+  toast('Order marked failed', 'error');
 }
 
 async function updateShopStatus(val) {
@@ -772,7 +737,7 @@ async function loadHistory() {
       <td>${amt}</td>
       <td><span class="badge badge-${o.status}">${o.status}</span></td>
       <td style="color:var(--gray)">${dt}</td>
-      <td>${o.status === 'failed' && o.retry_count < 3 ? `<button class="btn btn-ghost btn-sm" onclick="markPrinting('${o.id}')">Retry</button>` : ''}</td>
+      <td>${o.status === 'failed' ? `<button class="btn btn-ghost btn-sm" onclick="markPrinting('${o.id}')">Reprint</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -783,7 +748,6 @@ async function loadSettings() {
   document.getElementById('s-shopname').textContent = currentShop.name;
   document.getElementById('s-shopcode').textContent = currentShop.shop_code;
   document.getElementById('s-shopaddr').textContent = currentShop.address;
-  document.getElementById('s-autoprint').checked = currentShop.auto_print;
 }
 
 async function saveSetting(key, val) {

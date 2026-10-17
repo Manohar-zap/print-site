@@ -1,17 +1,42 @@
-const fs = require('fs-extra');
-const path = require('path');
-const os = require('os');
-const fetch = require('node-fetch');
-const { app } = require('electron');
+const fs = require("fs-extra");
+const path = require("path");
+const os = require("os");
+const fetch = require("node-fetch");
 
-const QUEUE_STATES = {
-  WAITING: 'waiting',
-  DOWNLOADING: 'downloading',
-  PRINTING: 'printing',
-  DONE: 'done',
-  FAILED: 'failed',
-  SKIPPED: 'skipped',
+// Internal job states used throughout the app
+const STATES = {
+  PENDING: "pending",
+  PRINTING: "printing",
+  PRINTED: "printed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 };
+
+// Map internal state → DB status string
+const STATE_TO_DB = {
+  [STATES.PENDING]: "queued",
+  [STATES.PRINTING]: "printing",
+  [STATES.PRINTED]: "completed",
+  [STATES.FAILED]: "failed",
+  [STATES.CANCELLED]: "cancelled",
+};
+
+// DB statuses that count as "active" (shown in queue)
+const ACTIVE_STATUSES = ["pending", "paid", "queued", "printing", "failed", "downloading"];
+// DB statuses that count as "history" (completed/done)
+const HISTORY_STATUSES = ["completed", "cancelled"];
+
+/** Convert a DB status string to an internal STATES value. */
+function dbStatusToState(status) {
+  switch (status) {
+    case "completed": return STATES.PRINTED;
+    case "printing":
+    case "downloading": return STATES.PRINTING;
+    case "failed": return STATES.FAILED;
+    case "cancelled": return STATES.CANCELLED;
+    default: return STATES.PENDING; // pending, paid, queued
+  }
+}
 
 class PrintQueue {
   constructor(sb, printerService, store, callbacks = {}) {
@@ -20,221 +45,285 @@ class PrintQueue {
     this.store = store;
     this.callbacks = callbacks;
     this.shop = null;
-    this.jobs = [];           // in-memory queue
-    this.processing = false;
-    this.autoPrint = store.get('autoPrint') ?? true;
-    this.tempDir = path.join(os.tmpdir(), 'printhub');
+    this.jobs = [];
+    this.tempDir = path.join(os.tmpdir(), "printhub");
     fs.ensureDirSync(this.tempDir);
-    this._cleanTempDir(); // clean stale files on boot
+    this._cleanTempDir();
   }
 
-  // ── SETUP ───────────────────────────────────────────────────────────────────
   setShop(shop, sb) {
     this.shop = shop;
     this.sb = sb;
-    this.autoPrint = shop.auto_print;
-    this._loadPendingJobs(); // load any queued jobs from DB on reconnect
+    this._loadOrders();
   }
 
-  setAutoPrint(val) {
-    this.autoPrint = val;
-    this.store.set('autoPrint', val);
-    if (val) this._processNext(); // start processing if just enabled
-  }
-
-  // ── QUEUE MANAGEMENT ────────────────────────────────────────────────────────
+  /** Add a new order to the queue if it isn't already tracked. */
   add(order) {
-    // Prevent duplicates
-    if (this.jobs.find(j => j.orderId === order.id)) return;
+    if (this.jobs.find((j) => j.orderId === order.id)) return;
+    this.jobs.unshift(this._orderToJob(order));
+    this.callbacks.onQueueChange?.();
+  }
 
-    const job = {
+  /** Convert a raw Supabase order row into a job object. */
+  _orderToJob(order) {
+    return {
       orderId: order.id,
       token: order.token,
       file_name: order.file_name,
       file_url: order.file_url,
+      customerName: order.customer_name || order.profiles?.name || null,
       copies: order.copies || 1,
-      colorMode: order.color_mode || 'bw',
-      paperSize: order.paper_size || 'A4',
-      sides: order.sides || 'single',
+      colorMode: order.color_mode || "bw",
+      paperSize: order.paper_size || "A4",
+      sides: order.sides || "single",
+      orientation: order.orientation || "portrait",
       isPriority: order.is_priority || false,
-      state: QUEUE_STATES.WAITING,
-      retries: 0,
-      maxRetries: this.store.get('settings')?.maxRetries || 3,
-      addedAt: Date.now(),
+      state: dbStatusToState(order.status),
+      error: null,
+      uploadedAt: order.created_at || new Date().toISOString(),
       tempFile: null,
     };
-
-    // Priority jobs go to front (after any currently printing job)
-    if (job.isPriority) {
-      const printingIdx = this.jobs.findIndex(j => j.state === QUEUE_STATES.PRINTING);
-      this.jobs.splice(printingIdx + 1, 0, job);
-    } else {
-      this.jobs.push(job);
-    }
-
-    this.callbacks.onQueueChange?.();
-
-    if (this.autoPrint && !this.processing) {
-      this._processNext();
-    }
   }
 
-  getAll() { return this.jobs; }
-  length() { return this.jobs.filter(j => j.state === QUEUE_STATES.WAITING || j.state === QUEUE_STATES.DOWNLOADING).length; }
-  clear() { this.jobs = []; }
-
-  // ── MANUAL TRIGGERS ─────────────────────────────────────────────────────────
-  async printNow(orderId) {
-    const job = this.jobs.find(j => j.orderId === orderId);
-    if (!job) return { ok: false, error: 'Job not found' };
-    if (job.state === QUEUE_STATES.PRINTING) return { ok: false, error: 'Already printing' };
-    job.state = QUEUE_STATES.WAITING;
-    await this._executeJob(job);
-    return { ok: true };
+  getAll() {
+    return this.jobs;
   }
 
-  skip(orderId) {
-    const job = this.jobs.find(j => j.orderId === orderId);
-    if (job) {
-      job.state = QUEUE_STATES.SKIPPED;
-      this._cleanup(job);
-    }
-    this.callbacks.onQueueChange?.();
-    return { ok: true };
+  getPending() {
+    return this.jobs.filter(
+      (j) => j.state === STATES.PENDING || j.state === STATES.PRINTING
+    );
   }
 
-  async retry(orderId) {
-    const job = this.jobs.find(j => j.orderId === orderId);
-    if (!job) return { ok: false, error: 'Job not found' };
-    if (job.retries >= job.maxRetries) return { ok: false, error: 'Max retries reached' };
-    job.state = QUEUE_STATES.WAITING;
-    job.retries++;
-    this.callbacks.onQueueChange?.();
-    if (!this.processing) await this._processNext();
-    return { ok: true };
+  getHistory() {
+    return this.jobs.filter((j) =>
+      [STATES.PRINTED, STATES.FAILED, STATES.CANCELLED].includes(j.state)
+    );
   }
 
-  // ── LOAD PENDING JOBS FROM DB ────────────────────────────────────────────────
-  async _loadPendingJobs() {
-    if (!this.shop) return;
-    const { data } = await this.sb.from('orders')
-      .select('*')
-      .eq('shop_id', this.shop.id)
-      .in('status', ['queued', 'paid'])
-      .order('is_priority', { ascending: false })
-      .order('created_at', { ascending: true });
-
-    if (data?.length) {
-      data.forEach(o => this.add(o));
-      console.log(`[queue] Loaded ${data.length} pending jobs from DB`);
-    }
+  pendingCount() {
+    return this.jobs.filter((j) => j.state === STATES.PENDING).length;
   }
 
-  // ── PROCESS LOOP ─────────────────────────────────────────────────────────────
-  async _processNext() {
-    if (this.processing) return;
-    if (!this.autoPrint) return;
-
-    const job = this.jobs.find(j => j.state === QUEUE_STATES.WAITING);
-    if (!job) return;
-
-    this.processing = true;
-    await this._executeJob(job);
-    this.processing = false;
-
-    // Continue processing remaining jobs
-    const hasMore = this.jobs.some(j => j.state === QUEUE_STATES.WAITING);
-    if (hasMore) setTimeout(() => this._processNext(), 500);
+  clear() {
+    this.jobs.forEach((job) => this._cleanup(job));
+    this.jobs = [];
   }
 
-  // ── EXECUTE A SINGLE JOB ────────────────────────────────────────────────────
-  async _executeJob(job) {
+  /** Open a PDF preview window for an order. */
+  async preview(orderId) {
+    const job = this.jobs.find((j) => j.orderId === orderId);
+    if (!job) return { ok: false, error: "Order not found" };
+
     try {
-      // 1. Mark downloading
-      job.state = QUEUE_STATES.DOWNLOADING;
-      this.callbacks.onQueueChange?.();
-      await this._updateOrderStatus(job.orderId, 'downloading');
-
-      // 2. Download file to temp
-      const tempFile = await this._downloadFile(job.file_url, job.file_name);
+      const tempFile =
+        job.tempFile || (await this._downloadFile(job.file_url, job.file_name));
       job.tempFile = tempFile;
+      await this.printerService.previewPdf(tempFile, `${job.token} — ${job.file_name}`);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
 
-      // 3. Mark printing
-      job.state = QUEUE_STATES.PRINTING;
+  /**
+   * Manually print an order.
+   * Flow: download → verify printer → print → update DB → cleanup temp file.
+   */
+  async printOrder(orderId, printOptions = {}) {
+    const job = this.jobs.find((j) => j.orderId === orderId);
+    if (!job) return { ok: false, error: "Order not found" };
+    if (job.state === STATES.PRINTING) {
+      return { ok: false, error: "This order is already printing." };
+    }
+    if (job.state === STATES.CANCELLED) {
+      return { ok: false, error: "This order was cancelled." };
+    }
+
+    // Merge per-card overrides on top of saved defaults
+    const options = this.printerService.resolvePrintOptions({
+      copies: printOptions.copies ?? job.copies,
+      colorMode: printOptions.colorMode ?? job.colorMode,
+      paperSize: printOptions.paperSize ?? job.paperSize,
+      sides: printOptions.sides ?? job.sides,
+      orientation: printOptions.orientation ?? job.orientation,
+      printerName: printOptions.printerName,
+    });
+
+    try {
+      job.state = STATES.PRINTING;
+      job.error = null;
       this.callbacks.onQueueChange?.();
-      await this._updateOrderStatus(job.orderId, 'printing');
+      await this._updateOrderStatus(job.orderId, STATES.PRINTING);
       this.callbacks.onJobStart?.(job);
 
-      // 4. Print
-      const printer = this.store.get('defaultPrinter');
-      await this.printerService.printFile(tempFile, {
-        printerName: printer,
-        copies: job.copies,
-        sides: job.sides,
-        paperSize: job.paperSize,
-        colorMode: job.colorMode,
-      });
+      const tempFile =
+        job.tempFile || (await this._downloadFile(job.file_url, job.file_name));
+      job.tempFile = tempFile;
 
-      // 5. Mark done
-      job.state = QUEUE_STATES.DONE;
-      this.callbacks.onQueueChange?.();
-      await this._updateOrderStatus(job.orderId, 'completed');
-      this.callbacks.onJobDone?.(job);
+      await this.printerService.printPdf(tempFile, options);
 
-      // 6. Delete temp file
+      // Update job fields to reflect what was actually printed
+      job.state = STATES.PRINTED;
+      job.copies = options.copies;
+      job.colorMode = options.colorMode;
+      job.paperSize = options.paperSize;
+      job.sides = options.sides;
+      job.orientation = options.orientation;
+
+      await this._updateOrderStatus(job.orderId, STATES.PRINTED);
+      await this._logPrint(job.orderId, options.printerName);
       this._cleanup(job);
-
+      this.callbacks.onJobDone?.(job);
+      return { ok: true };
     } catch (err) {
-      console.error('[queue] Job failed:', job.token, err.message);
-      job.state = QUEUE_STATES.FAILED;
-      this.callbacks.onQueueChange?.();
-      this.callbacks.onJobFailed?.(job, err.message);
-
-      await this._updateOrderStatus(job.orderId, 'failed');
+      job.state = STATES.FAILED;
+      job.error = err.message;
+      await this._updateOrderStatus(job.orderId, STATES.FAILED);
       await this._logError(job.orderId, err.message);
-
-      // Auto-retry
-      if (job.retries < job.maxRetries) {
-        job.retries++;
-        console.log(`[queue] Auto-retry ${job.retries}/${job.maxRetries} for ${job.token}`);
-        setTimeout(() => {
-          job.state = QUEUE_STATES.WAITING;
-          this.callbacks.onQueueChange?.();
-          if (!this.processing) this._processNext();
-        }, 5000 * job.retries); // back-off: 5s, 10s, 15s
-      }
+      this.callbacks.onJobFailed?.(job, err.message);
+      return { ok: false, error: err.message };
+    } finally {
+      this.callbacks.onQueueChange?.();
     }
   }
 
-  // ── DOWNLOAD FILE ───────────────────────────────────────────────────────────
+  /** Cancel a pending order. Cannot cancel while actively printing. */
+  async cancel(orderId) {
+    const job = this.jobs.find((j) => j.orderId === orderId);
+    if (!job) return { ok: false, error: "Order not found" };
+    if (job.state === STATES.PRINTING) {
+      return { ok: false, error: "Cannot cancel while printing." };
+    }
+
+    job.state = STATES.CANCELLED;
+    this._cleanup(job);
+    await this._updateOrderStatus(orderId, STATES.CANCELLED);
+    this.callbacks.onQueueChange?.();
+    return { ok: true };
+  }
+
+  /** Remove an order from the local dashboard (does not affect DB). */
+  async deleteOrder(orderId) {
+    const job = this.jobs.find((j) => j.orderId === orderId);
+    if (!job) return { ok: false, error: "Order not found" };
+    if (job.state === STATES.PRINTING) {
+      return { ok: false, error: "Cannot delete while printing." };
+    }
+
+    this._cleanup(job);
+    this.jobs = this.jobs.filter((j) => j.orderId !== orderId);
+    this.callbacks.onQueueChange?.();
+    return { ok: true };
+  }
+
+  /**
+   * Sync an order updated via realtime subscription.
+   * Only updates state if the job isn't currently printing locally.
+   */
+  syncOrder(order) {
+    const job = this.jobs.find((j) => j.orderId === order.id);
+    if (job) {
+      // Don't overwrite local printing state with a remote update
+      if (job.state !== STATES.PRINTING) {
+        job.state = dbStatusToState(order.status);
+      }
+      job.copies = order.copies ?? job.copies;
+      job.colorMode = order.color_mode ?? job.colorMode;
+      job.paperSize = order.paper_size ?? job.paperSize;
+      job.sides = order.sides ?? job.sides;
+    } else {
+      // Order not yet tracked — add it
+      this.jobs.unshift(this._orderToJob(order));
+    }
+    this.callbacks.onQueueChange?.();
+  }
+
+  /** Reprint a completed or failed order with optional overrides. */
+  async reprint(orderId, printOptions = {}) {
+    const job = this.jobs.find((j) => j.orderId === orderId);
+    if (!job) return { ok: false, error: "Order not found" };
+
+    // Reset to pending so printOrder accepts it
+    if (job.state === STATES.PRINTED) {
+      job.state = STATES.PENDING;
+    }
+    return this.printOrder(orderId, printOptions);
+  }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  /** Load existing orders from DB on login/shop switch. */
+  async _loadOrders() {
+    if (!this.shop) return;
+
+    const { data: active } = await this.sb
+      .from("orders")
+      .select("*, profiles(name)")
+      .eq("shop_id", this.shop.id)
+      .in("status", ACTIVE_STATUSES)
+      .order("is_priority", { ascending: false })
+      .order("created_at", { ascending: true });
+
+    const oneDayAgo = new Date(Date.now() - 86_400_000).toISOString();
+    const { data: recentHistory } = await this.sb
+      .from("orders")
+      .select("*, profiles(name)")
+      .eq("shop_id", this.shop.id)
+      .in("status", HISTORY_STATUSES)
+      .gte("updated_at", oneDayAgo)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+
+    this.jobs = [];
+    [...(active || []), ...(recentHistory || [])].forEach((order) => {
+      if (!this.jobs.find((j) => j.orderId === order.id)) {
+        this.jobs.push(this._orderToJob(order));
+      }
+    });
+
+    this.callbacks.onQueueChange?.();
+    console.log(`[queue] Loaded ${this.jobs.length} orders`);
+  }
+
   async _downloadFile(url, filename) {
-    const ext = path.extname(filename) || '.pdf';
-    const tmpName = `printhub_${Date.now()}${ext}`;
-    const tmpPath = path.join(this.tempDir, tmpName);
+    if (!url) throw new Error("PDF file is missing for this order.");
+
+    const ext = path.extname(filename) || ".pdf";
+    const tmpPath = path.join(this.tempDir, `printhub_${Date.now()}${ext}`);
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
 
     const buffer = await res.buffer();
     await fs.writeFile(tmpPath, buffer);
-    console.log('[queue] Downloaded to:', tmpPath);
     return tmpPath;
   }
 
-  // ── SUPABASE STATUS UPDATE ──────────────────────────────────────────────────
-  async _updateOrderStatus(orderId, status) {
-    await this.sb.from('orders').update({ status }).eq('id', orderId);
+  async _updateOrderStatus(orderId, state) {
+    const status = STATE_TO_DB[state] || state;
+    await this.sb.from("orders").update({ status }).eq("id", orderId);
+  }
+
+  async _logPrint(orderId, printerName) {
+    await this.sb.from("print_jobs").upsert({
+      order_id: orderId,
+      printer: printerName,
+      job_status: "completed",
+      printed_at: new Date().toISOString(),
+      error_log: null,
+    });
   }
 
   async _logError(orderId, errMsg) {
-    await this.sb.from('print_jobs').upsert({
+    await this.sb.from("print_jobs").upsert({
       order_id: orderId,
-      job_status: 'error',
+      job_status: "error",
       error_log: errMsg,
     });
   }
 
-  // ── CLEANUP ─────────────────────────────────────────────────────────────────
+  /** Delete temp PDF for a job after printing or cancellation. */
   _cleanup(job) {
     if (job.tempFile) {
       fs.remove(job.tempFile).catch(() => {});
@@ -242,12 +331,12 @@ class PrintQueue {
     }
   }
 
+  /** Remove leftover temp files older than 1 hour on startup. */
   _cleanTempDir() {
-    // Delete any leftover temp files older than 1 hour
     fs.readdir(this.tempDir, (err, files) => {
       if (err || !files) return;
-      const oneHourAgo = Date.now() - 3600000;
-      files.forEach(f => {
+      const oneHourAgo = Date.now() - 3_600_000;
+      files.forEach((f) => {
         const fp = path.join(this.tempDir, f);
         fs.stat(fp, (e, stat) => {
           if (!e && stat.mtimeMs < oneHourAgo) fs.remove(fp).catch(() => {});
@@ -257,4 +346,5 @@ class PrintQueue {
   }
 }
 
+PrintQueue.STATES = STATES;
 module.exports = PrintQueue;
