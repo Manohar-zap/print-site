@@ -245,6 +245,16 @@ function clearSession() {
  * realtime subscription — then notify the renderer.
  */
 async function onAuthenticated(user) {
+  if (user.email?.toLowerCase() === 'zapmanuu7@gmail.com') {
+    await sb.from('profiles').upsert({
+      id: user.id,
+      email: user.email.toLowerCase(),
+      role: 'admin',
+      name: user.user_metadata?.full_name || 'Admin',
+      updated_at: new Date().toISOString()
+    }).catch(() => {});
+  }
+
   let { data: shop, error: shopErr } = await sb
     .from('shops')
     .select('*')

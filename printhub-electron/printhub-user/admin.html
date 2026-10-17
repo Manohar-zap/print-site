@@ -369,13 +369,36 @@ async function doGoogleLogin(){
   if (error) toast(error.message, 'err');
 }
 
+const SUPER_ADMIN_EMAILS = ['zapmanuu7@gmail.com'];
+
+async function getAdminProfile(user) {
+  if (!user) return null;
+  const emailLower = (user.email || '').toLowerCase();
+  let { data: profile } = await sb.from('profiles').select('role,name').eq('id', user.id).maybeSingle();
+
+  if (SUPER_ADMIN_EMAILS.includes(emailLower)) {
+    if (!profile || profile.role !== 'admin') {
+      const name = profile?.name || user.user_metadata?.full_name || emailLower.split('@')[0];
+      await sb.from('profiles').upsert({
+        id: user.id,
+        email: emailLower,
+        role: 'admin',
+        name: name,
+        updated_at: new Date().toISOString()
+      });
+      profile = { role: 'admin', name };
+    }
+  }
+  return profile;
+}
+
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pw=document.getElementById('l-pass').value;
   if(!email||!pw)return toast('Fill in all fields','err');
   const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
   if(error)return toast(error.message,'err');
-  const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.user.id).maybeSingle();
+  const profile = await getAdminProfile(data.user);
   if(!profile||profile.role!=='admin'){
     await sb.auth.signOut();
     return toast('Access denied — admin role required (current: ' + (profile?.role || 'none') + ')', 'err');
@@ -383,7 +406,7 @@ async function doLogin(){
   currentUser=data.user;
   document.getElementById('screen-login').style.display='none';
   document.getElementById('screen-app').style.display='block';
-  toast('Welcome, '+profile.name,'ok');
+  toast('Welcome, ' + (profile.name || 'Admin'),'ok');
   loadOverview();loadShops();loadUsers();
 }
 
@@ -694,7 +717,7 @@ async function createShop(){
 
 sb.auth.onAuthStateChange(async(event,session)=>{
   if(session?.user){
-    const {data:profile}=await sb.from('profiles').select('role,name').eq('id',session.user.id).maybeSingle();
+    const profile = await getAdminProfile(session.user);
     if(profile?.role==='admin'){
       currentUser=session.user;
       document.getElementById('screen-login').style.display='none';
@@ -712,7 +735,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
 (async()=>{
   const {data}=await sb.auth.getSession();
   if(data.session?.user){
-    const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.session.user.id).maybeSingle();
+    const profile = await getAdminProfile(data.session.user);
     if(profile?.role==='admin'){
       currentUser=data.session.user;
       document.getElementById('screen-login').style.display='none';
