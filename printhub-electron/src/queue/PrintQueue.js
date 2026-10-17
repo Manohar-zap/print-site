@@ -1,7 +1,8 @@
-const fs = require("fs-extra");
+const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
 const os = require("os");
-const fetch = require("node-fetch");
+const fetch = globalThis.fetch || require("node-fetch");
 
 // Internal job states used throughout the app
 const STATES = {
@@ -47,7 +48,9 @@ class PrintQueue {
     this.shop = null;
     this.jobs = [];
     this.tempDir = path.join(os.tmpdir(), "printhub");
-    fs.ensureDirSync(this.tempDir);
+    if (!fs.existsSync(this.tempDir)) {
+      fs.mkdirSync(this.tempDir, { recursive: true });
+    }
     this._cleanTempDir();
   }
 
@@ -295,8 +298,10 @@ class PrintQueue {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
 
-    const buffer = await res.buffer();
-    await fs.writeFile(tmpPath, buffer);
+    const buffer = typeof res.buffer === 'function'
+      ? await res.buffer()
+      : Buffer.from(await res.arrayBuffer());
+    await fsp.writeFile(tmpPath, buffer);
     return tmpPath;
   }
 
@@ -326,7 +331,7 @@ class PrintQueue {
   /** Delete temp PDF for a job after printing or cancellation. */
   _cleanup(job) {
     if (job.tempFile) {
-      fs.remove(job.tempFile).catch(() => {});
+      fsp.rm(job.tempFile, { force: true }).catch(() => {});
       job.tempFile = null;
     }
   }
@@ -339,7 +344,7 @@ class PrintQueue {
       files.forEach((f) => {
         const fp = path.join(this.tempDir, f);
         fs.stat(fp, (e, stat) => {
-          if (!e && stat.mtimeMs < oneHourAgo) fs.remove(fp).catch(() => {});
+          if (!e && stat.mtimeMs < oneHourAgo) fsp.rm(fp, { force: true }).catch(() => {});
         });
       });
     });

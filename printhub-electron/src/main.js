@@ -110,6 +110,11 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  }, 1000);
 
   mainWindow.on('close', (e) => {
     if (!app.isQuiting) {
@@ -123,12 +128,16 @@ function createWindow() {
 
 // ── Tray ─────────────────────────────────────────────────────────────────────
 function createTray() {
-  const iconPath = path.join(__dirname, '../assets/tray.png');
+  const iconPath = process.platform === 'win32'
+    ? path.join(__dirname, '../assets/icon.ico')
+    : path.join(__dirname, '../assets/tray.png');
   let img;
   try {
     img = nativeImage.createFromPath(iconPath);
     if (img.isEmpty()) throw new Error('empty');
-    img = img.resize({ width: 16, height: 16 });
+    if (process.platform !== 'win32') {
+      img = img.resize({ width: 16, height: 16 });
+    }
   } catch {
     img = nativeImage.createEmpty();
   }

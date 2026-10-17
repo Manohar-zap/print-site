@@ -41,6 +41,31 @@ body{background:var(--black);color:var(--white);font-family:var(--font-b);font-s
 .btn-success{background:rgba(0,230,122,.12);color:var(--green);border:1px solid rgba(0,230,122,.25)}
 .btn-success:hover{background:rgba(0,230,122,.2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
+.hidden{display:none!important}
+
+/* ── GOOGLE BUTTON & DIVIDER ────────────────────────────── */
+.btn-google{background:#ffffff;color:#1f1f1f;font-weight:600;font-size:14px;border:1px solid #dadce0;gap:10px;transition:all .2s cubic-bezier(.16,1,.3,1);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn-google:hover{background:#f8f9fa;border-color:#d2e3fc;box-shadow:0 4px 12px rgba(26,107,255,.15);transform:translateY(-1px)}
+.btn-google svg{flex-shrink:0}
+.login-divider{display:flex;align-items:center;text-align:center;margin:22px 0 18px 0;color:var(--gray);font-size:12px}
+.login-divider::before,.login-divider::after{content:'';flex:1;border-bottom:1px solid var(--border)}
+.login-divider span{padding:0 14px;text-transform:uppercase;letter-spacing:.05em;font-size:11px}
+
+/* ── AUTH TABS ──────────────────────────────────────────── */
+.auth-tabs{display:flex;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:18px}
+.auth-tab{flex:1;background:transparent;border:none;color:var(--gray);font-size:13px;font-weight:600;padding:8px 0;border-radius:7px;transition:all .2s;cursor:pointer;font-family:var(--font-b)}
+.auth-tab.active{background:var(--surf3);color:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:999;animation:mIn .2s ease}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:36px;width:100%;max-width:440px;position:relative;box-shadow:0 24px 48px rgba(0,0,0,.7)}
+.modal-title{font-family:var(--font-h);font-size:22px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--gray);margin-bottom:24px;line-height:1.5}
+.modal-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--white)}
+@keyframes mIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+
 
 /* ── MAIN LAYOUT ─────────────────────────────────────────── */
 #app{flex:1;display:none;overflow:hidden}
@@ -193,10 +218,11 @@ body{background:var(--black);color:var(--white);font-family:var(--font-b);font-s
   <div class="modal">
     <button class="modal-close" onclick="document.getElementById('register-modal').classList.add('hidden')">✕</button>
     <div class="modal-title">Register your shop</div>
+    <div class="modal-sub">Welcome! Enter your shop details once to link your Google account and start receiving print orders.</div>
     <div class="form-group"><label class="form-label">Shop name</label><input class="form-input" id="reg-name" placeholder="e.g. Copy King — MG Road"/></div>
-    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="reg-addr" placeholder="Full address"/></div>
-    <div class="form-group"><label class="form-label">Shop code (customers use this for offline mode)</label><input class="form-input" id="reg-code" placeholder="e.g. PH-2041" maxlength="8"/></div>
-    <button class="btn btn-primary btn-full" onclick="registerShop()">Create shop →</button>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="reg-addr" placeholder="Full address (e.g. Near North Gate)"/></div>
+    <div class="form-group"><label class="form-label">Shop code (customers use this to select your shop)</label><input class="form-input" id="reg-code" placeholder="e.g. PH-2041" maxlength="10"/></div>
+    <button class="btn btn-primary btn-full" id="btn-reg-shop" onclick="registerShop()">Create shop & Open Dashboard →</button>
   </div>
 </div>
 
@@ -205,10 +231,30 @@ body{background:var(--black);color:var(--white);font-family:var(--font-b);font-s
   <div class="login-box">
     <div class="login-logo">Print<span>hub</span></div>
     <div class="login-sub">Shop owner dashboard</div>
+
+    <!-- Google One-Click Auth -->
+    <button class="btn btn-full btn-google" id="btn-google-login" onclick="doGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <div class="login-divider"><span>or with email</span></div>
+
+    <!-- Auth Mode Switcher -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" type="button" onclick="setAuthMode('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" type="button" onclick="setAuthMode('signup')">Create Account</button>
+    </div>
+
     <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="lo-email" placeholder="owner@shop.com"/></div>
     <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="lo-pw" placeholder="••••••••"/></div>
-    <button class="btn btn-primary btn-full" onclick="doLogin()">Login →</button>
-    <p style="margin-top:14px;font-size:12px;color:var(--gray);text-align:center">Shop owner accounts are created by Printhub admin.<br/>Contact support if you need access.</p>
+    <button class="btn btn-primary btn-full" id="btn-submit-auth" onclick="doAuth()">Sign In →</button>
+    <p id="auth-sub-msg" style="margin-top:16px;font-size:12px;color:var(--gray);text-align:center;line-height:1.5">No manual host setup needed. Create an account or sign in with Google to manage your shop.</p>
   </div>
 </div>
 
@@ -447,12 +493,86 @@ function toast(msg, type = 'info') {
 
 // ── AUTH ───────────────────────────────────────────────────
 
-async function doLogin() {
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  const btn = document.getElementById('btn-submit-auth');
+  btn.textContent = mode === 'login' ? 'Sign In →' : 'Create Account →';
+  document.getElementById('auth-sub-msg').textContent = mode === 'login'
+    ? 'Enter your credentials to access your dashboard'
+    : 'Create a free shopkeeper account (no admin approval needed)';
+}
+
+async function doGoogleLogin() {
+  const btn = document.getElementById('btn-google-login');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>Connecting to Google…</span>`;
+  }
+  const redirectUrl = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl
+    }
+  });
+  if (error) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Sign in with Google`;
+    }
+    const msg = error.message || '';
+    if (msg.includes('not enabled') || msg.includes('Unsupported provider')) {
+      toast('Google provider is not enabled in your Supabase project yet. Toggle it ON in Supabase Dashboard → Auth → Providers, or use Email Sign Up below.', 'error');
+    } else {
+      toast(msg, 'error');
+    }
+  }
+}
+
+async function doAuth() {
   const email = document.getElementById('lo-email').value.trim();
   const pw = document.getElementById('lo-pw').value;
   if (!email || !pw) return toast('Enter email and password', 'error');
-  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-  if (error) return toast(error.message, 'error');
+
+  const btn = document.getElementById('btn-submit-auth');
+  btn.disabled = true;
+
+  if (authMode === 'login') {
+    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+    btn.disabled = false;
+    if (error) return toast(error.message, 'error');
+  } else {
+    if (pw.length < 6) {
+      btn.disabled = false;
+      return toast('Password must be at least 6 characters', 'error');
+    }
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pw,
+      options: {
+        data: { role: 'owner' }
+      }
+    });
+    btn.disabled = false;
+    if (error) return toast(error.message, 'error');
+    if (data.session) {
+      toast('Account created successfully! Welcome 🎉', 'success');
+    } else {
+      toast('Account created! You can now sign in.', 'success');
+      setAuthMode('login');
+    }
+  }
 }
 
 async function doLogout() {
@@ -476,41 +596,111 @@ function showPage(name, btn) {
 
 // ── INIT AFTER LOGIN ───────────────────────────────────────
 async function initApp(user) {
+  if (!user) return;
   currentUser = user;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
 
   // Load shop
-  const { data: shop } = await sb.from('shops').select('*').eq('owner_id', user.id).single();
-  if (!shop) {
-    document.getElementById('register-modal').classList.remove('hidden');
-    return;
-  }
-  currentShop = shop;
-  document.getElementById('topbar-shop').textContent = shop.name;
-  document.getElementById('shop-status-select').value = shop.status;
+  try {
+    const { data: shop, error } = await sb.from('shops').select('*').eq('owner_id', user.id).maybeSingle();
+    if (!shop) {
+      // New user without a registered shop — display registration popup
+      const userDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+      if (userDisplayName && !document.getElementById('reg-name').value) {
+        document.getElementById('reg-name').value = `${userDisplayName}'s Print Shop`;
+      }
+      document.getElementById('register-modal').classList.remove('hidden');
+      return;
+    }
+    currentShop = shop;
+    document.getElementById('topbar-shop').textContent = shop.name;
+    document.getElementById('shop-status-select').value = shop.status || 'open';
 
-  await loadQueue();
-  await loadDayStats();
-  subscribeRealtime();
+    await loadQueue();
+    await loadDayStats();
+    subscribeRealtime();
+  } catch (e) {
+    console.error('initApp error:', e);
+  }
 }
 
 // ── REGISTER SHOP ──────────────────────────────────────────
 async function registerShop() {
+  const btn = document.getElementById('btn-reg-shop');
   const name = document.getElementById('reg-name').value.trim();
   const addr = document.getElementById('reg-addr').value.trim();
-  const code = document.getElementById('reg-code').value.trim().toUpperCase();
-  if (!name || !addr || !code) return toast('Fill all fields', 'error');
-  const { data, error } = await sb.from('shops').insert({
-    owner_id: currentUser.id, name, address: addr, shop_code: code, status: 'open'
-  }).select().single();
-  if (error) return toast(error.message, 'error');
-  currentShop = data;
-  document.getElementById('register-modal').classList.add('hidden');
-  document.getElementById('topbar-shop').textContent = data.name;
-  subscribeRealtime();
-  loadQueue();
-  toast('Shop registered! 🎉', 'success');
+  const code = document.getElementById('reg-code').value.trim().toUpperCase().replace(/\s+/g, '-');
+
+  if (!name || !addr || !code) {
+    return toast('Please fill in all fields (Shop name, Address, and Code)', 'error');
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Registering shop…';
+  }
+
+  try {
+    // 1. Ensure we have an active authenticated user
+    let user = currentUser;
+    if (!user) {
+      const { data: userData } = await sb.auth.getUser();
+      user = userData?.user;
+      if (user) currentUser = user;
+    }
+
+    if (!user) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast('Session not found. Please sign in or refresh the page.', 'error');
+    }
+
+    // 2. Check if shop code is already in use
+    const { data: codeCheck } = await sb.from('shops').select('id').eq('shop_code', code).maybeSingle();
+    if (codeCheck) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast(`Shop code "${code}" is already taken. Please choose another code.`, 'error');
+    }
+
+    // 3. Fast insert directly into shops table
+    const { data, error } = await sb.from('shops').insert({
+      owner_id: user.id,
+      name,
+      address: addr,
+      shop_code: code,
+      status: 'open',
+      auto_print: false
+    }).select().single();
+
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast(error.message || 'Could not register shop', 'error');
+    }
+
+    // 4. Update profile role asynchronously
+    sb.from('profiles').update({ role: 'owner' }).eq('id', user.id).then(() => {}).catch(() => {});
+
+    // 5. Instantly close modal and activate dashboard
+    currentShop = data;
+    document.getElementById('register-modal').classList.add('hidden');
+    document.getElementById('topbar-shop').textContent = data.name;
+
+    toast('Shop registered! Welcome to PrintHub 🎉', 'success');
+
+    // 6. Load dashboard data in background
+    subscribeRealtime();
+    loadQueue().catch(console.error);
+    loadDayStats().catch(console.error);
+
+  } catch (err) {
+    console.error('Registration failed:', err);
+    toast(err.message || 'An unexpected error occurred during registration', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Create shop & Open Dashboard →';
+    }
+  }
 }
 
 // ── REALTIME ───────────────────────────────────────────────
@@ -639,9 +829,12 @@ async function loadDayStats() {
   const rev = (data || []).filter(o => o.status === 'completed')
     .reduce((s, o) => s + (o.amount_shop || 0), 0);
 
-  document.getElementById('stat-done').textContent = done;
-  document.getElementById('stat-failed').textContent = failed;
-  document.getElementById('stat-revenue').textContent = `₹${(rev/100).toFixed(0)}`;
+  const elDone = document.getElementById('stat-done');
+  if (elDone) elDone.textContent = done;
+  const elFailed = document.getElementById('stat-failed');
+  if (elFailed) elFailed.textContent = failed;
+  const elRev = document.getElementById('stat-revenue');
+  if (elRev) elRev.textContent = `₹${(rev/100).toFixed(0)}`;
 }
 
 // ── ORDER ACTIONS ──────────────────────────────────────────

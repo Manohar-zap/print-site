@@ -56,6 +56,13 @@ button{cursor:pointer;font-family:var(--font-b)}
 .login-logo{font-family:var(--font-h);font-size:24px;font-weight:800;margin-bottom:6px}
 .login-logo span{color:var(--blue)}
 .login-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.25);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--amber);margin-bottom:24px;font-weight:500}
+.btn-google{background:#ffffff;color:#1f1f1f;font-weight:600;font-size:13px;border:1px solid #dadce0;gap:10px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:6px}
+.btn-google:hover{background:#f8f9fa;box-shadow:0 3px 8px rgba(255,255,255,.08);transform:translateY(-1px)}
+.btn-google svg{flex-shrink:0}
+.login-divider{display:flex;align-items:center;text-align:center;margin:18px 0;color:var(--gray);font-size:11px}
+.login-divider::before,.login-divider::after{content:'';flex:1;border-bottom:1px solid var(--border)}
+.login-divider span{padding:0 12px;text-transform:uppercase;letter-spacing:.05em}
+
 /* SHELL */
 #screen-app{display:none;min-height:100vh}
 .shell{display:flex;min-height:100vh}
@@ -153,6 +160,19 @@ button{cursor:pointer;font-family:var(--font-b)}
   <div class="login-box">
     <div class="login-logo">Print<span>hub</span></div>
     <div class="login-badge">&#x1F510; Admin panel</div>
+
+    <button class="btn btn-full btn-google" id="btn-google-admin" onclick="doGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <div class="login-divider"><span>or with password</span></div>
+
     <div class="fl"><label>Admin email</label><input class="fi" type="email" id="l-email" placeholder="admin@printhub.com"/></div>
     <div class="fl"><label>Password</label><input class="fi" type="password" id="l-pass" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <button class="btn btn-p btn-full" onclick="doLogin()">Login &#x2192;</button>
@@ -274,8 +294,8 @@ button{cursor:pointer;font-family:var(--font-b)}
   </div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Shop</th><th>Address</th><th>Code</th><th>Status</th><th>Auto-print</th><th>Orders</th><th>Actions</th></tr></thead>
-      <tbody id="shops-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+      <thead><tr><th>Shop</th><th>Address</th><th>Code</th><th>Status</th><th>Orders</th><th>Actions</th></tr></thead>
+      <tbody id="shops-body"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -302,8 +322,8 @@ button{cursor:pointer;font-family:var(--font-b)}
   </div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Token</th><th>File</th><th>Shop</th><th>Retries</th><th>Amount</th><th>Payment</th><th>Time</th><th>Actions</th></tr></thead>
-      <tbody id="failed-body"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
+      <thead><tr><th>Token</th><th>File</th><th>Shop</th><th>Amount</th><th>Payment</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody id="failed-body"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">Loading&#x2026;</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -338,14 +358,28 @@ function timeAgo(ts){
 }
 function escJ(o){return "'"+JSON.stringify(o).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'"}
 
+async function doGoogleLogin(){
+  const redirectUrl = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl
+    }
+  });
+  if (error) toast(error.message, 'err');
+}
+
 async function doLogin(){
   const email=document.getElementById('l-email').value.trim();
   const pw=document.getElementById('l-pass').value;
   if(!email||!pw)return toast('Fill in all fields','err');
   const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
   if(error)return toast(error.message,'err');
-  const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.user.id).single();
-  if(!profile||profile.role!=='admin'){await sb.auth.signOut();return toast('Access denied — admin only','err');}
+  const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.user.id).maybeSingle();
+  if(!profile||profile.role!=='admin'){
+    await sb.auth.signOut();
+    return toast('Access denied — admin role required (current: ' + (profile?.role || 'none') + ')', 'err');
+  }
   currentUser=data.user;
   document.getElementById('screen-login').style.display='none';
   document.getElementById('screen-app').style.display='block';
@@ -493,13 +527,12 @@ async function loadShops(){
 
 function renderShops(shops){
   const tb=document.getElementById('shops-body');
-  if(!shops.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray)">No shops yet</td></tr>';return;}
+  if(!shops.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray)">No shops yet</td></tr>';return;}
   tb.innerHTML=shops.map(s=>`<tr>
     <td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--gray)">${s.profiles?.name||'&#x2014;'} &middot; ${s.profiles?.email||'&#x2014;'}</div></td>
     <td style="font-size:12px;color:var(--gray);max-width:150px">${s.address}</td>
     <td><code style="background:var(--surf2);padding:2px 8px;border-radius:6px;font-size:12px">${s.shop_code||'&#x2014;'}</code></td>
     <td><span class="badge b-${s.status}">${s.status}</span></td>
-    <td>${s.auto_print?'<span style="color:var(--green)">&#x2713; On</span>':'<span style="color:var(--gray)">Off</span>'}</td>
     <td id="sc-${s.id}" style="color:var(--gray)">&#x2014;</td>
     <td><div style="display:flex;gap:6px">
       <button class="btn btn-g btn-sm" onclick="showShopModal(${escJ(s)})">Details</button>
@@ -564,12 +597,11 @@ async function setRole(userId,role,e){
 async function loadFailed(){
   const {data}=await sb.from('orders').select('*,shops(name),profiles(name)').eq('status','failed').order('created_at',{ascending:false});
   const tb=document.getElementById('failed-body');
-  if(!data?.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px"><div style="font-size:28px;margin-bottom:8px">&#x2705;</div><div style="color:var(--gray)">No failed jobs</div></td></tr>';return;}
+  if(!data?.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px"><div style="font-size:28px;margin-bottom:8px">&#x2705;</div><div style="color:var(--gray)">No failed jobs</div></td></tr>';return;}
   tb.innerHTML=data.map(o=>`<tr>
     <td><strong style="color:var(--blue);font-family:var(--font-h)">${o.token||'&#x2014;'}</strong></td>
     <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.file_name}</td>
     <td>${o.shops?.name||'&#x2014;'}</td>
-    <td style="color:var(--red)">${o.retry_count||0}/3</td>
     <td>${fmtRs(o.amount_total)}</td>
     <td><span class="badge b-${o.payment_status==='paid'?'completed':'pending'}">${o.payment_status}</span></td>
     <td style="color:var(--gray)">${timeAgo(o.created_at)}</td>
@@ -581,7 +613,7 @@ async function loadFailed(){
 }
 
 async function requeue(orderId){
-  const {error}=await sb.from('orders').update({status:'queued',retry_count:0}).eq('id',orderId);
+  const {error}=await sb.from('orders').update({status:'queued'}).eq('id',orderId);
   if(error)return toast('Failed: '+error.message,'err');
   toast('Order re-queued','ok');loadFailed();
 }
@@ -602,7 +634,6 @@ function showOrderModal(o){
     <div class="detail-row"><span class="detail-key">Shop share</span><span class="detail-val" style="color:var(--green)">${fmtRs(o.amount_shop)}</span></div>
     <div class="detail-row"><span class="detail-key">Platform share</span><span class="detail-val" style="color:var(--blue)">${fmtRs(o.amount_platform)}</span></div>
     <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge b-${o.status}">${o.status}</span></span></div>
-    <div class="detail-row"><span class="detail-key">Retries</span><span class="detail-val">${o.retry_count||0}/3</span></div>
     ${o.notes?`<div class="detail-row"><span class="detail-key">Notes</span><span class="detail-val">${o.notes}</span></div>`:''}
     <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val">${fmtDate(o.created_at)}</span></div>
     ${o.status==='failed'?`<div style="margin-top:16px"><button class="btn btn-warn btn-full" onclick="requeue('${o.id}');closeModal('order-modal')">&#x21BB; Requeue this order</button></div>`:''}
@@ -617,7 +648,6 @@ function showShopModal(s){
     <div class="detail-row"><span class="detail-key">Address</span><span class="detail-val">${s.address}</span></div>
     <div class="detail-row"><span class="detail-key">Shop code</span><span class="detail-val"><code style="background:var(--surf2);padding:2px 8px;border-radius:6px">${s.shop_code||'&#x2014;'}</code></span></div>
     <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge b-${s.status}">${s.status}</span></span></div>
-    <div class="detail-row"><span class="detail-key">Auto-print</span><span class="detail-val">${s.auto_print?'Enabled':'Disabled'}</span></div>
     <div class="detail-row"><span class="detail-key">Registered</span><span class="detail-val">${fmtDate(s.created_at)}</span></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       ${s.status!=='offline'?`<button class="btn btn-err btn-full" onclick="setShopStatus('${s.id}','offline');closeModal('shop-modal')">Block shop</button>`:`<button class="btn btn-ok btn-full" onclick="setShopStatus('${s.id}','open');closeModal('shop-modal')">Unblock shop</button>`}
@@ -663,21 +693,26 @@ async function createShop(){
 }
 
 sb.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'&&session){
-    const {data:profile}=await sb.from('profiles').select('role').eq('id',session.user.id).single();
+  if(session?.user){
+    const {data:profile}=await sb.from('profiles').select('role,name').eq('id',session.user.id).maybeSingle();
     if(profile?.role==='admin'){
       currentUser=session.user;
       document.getElementById('screen-login').style.display='none';
       document.getElementById('screen-app').style.display='block';
       loadOverview();loadShops();loadUsers();
+    } else {
+      toast('Signed in as ' + (profile?.role || 'customer') + '. Admin role required.', 'err');
     }
+  } else {
+    document.getElementById('screen-app').style.display='none';
+    document.getElementById('screen-login').style.display='flex';
   }
 });
 
 (async()=>{
   const {data}=await sb.auth.getSession();
-  if(data.session){
-    const {data:profile}=await sb.from('profiles').select('role').eq('id',data.session.user.id).single();
+  if(data.session?.user){
+    const {data:profile}=await sb.from('profiles').select('role,name').eq('id',data.session.user.id).maybeSingle();
     if(profile?.role==='admin'){
       currentUser=data.session.user;
       document.getElementById('screen-login').style.display='none';

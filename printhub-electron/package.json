@@ -1,13 +1,13 @@
 {
   "name": "printhub-desktop",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Printhub Shop Desktop App — Manual print operator console",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "generate:icons": "node scripts/generate-icons.js",
-    "prebuild": "node scripts/generate-icons.js",
+    "prebuild": "node scripts/generate-icons.js && node scripts/postinstall-patches.js",
     "build:win": "electron-builder --win --x64",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
@@ -16,7 +16,6 @@
     "@supabase/supabase-js": "^2.43.4",
     "dotenv": "^16.4.5",
     "electron-store": "^8.1.0",
-    "fs-extra": "^11.2.0",
     "node-fetch": "^2.7.0",
     "ws": "^8.20.1"
   },
@@ -70,6 +69,7 @@
       "src/**/*",
       "assets/**/*",
       "!assets/icon.png",
+      ".env",
       "node_modules/**/*",
       "!node_modules/.cache/**/*"
     ],
