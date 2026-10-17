@@ -625,6 +625,14 @@ async function initApp(user) {
   try {
     const { data: shop, error } = await sb.from('shops').select('*').eq('owner_id', user.id).maybeSingle();
     if (!shop) {
+      if ((user.email || '').toLowerCase() === 'zapmanuu7@gmail.com') {
+        toast('Logged in as Super Admin. Redirecting to Admin Dashboard…', 'success');
+        setTimeout(() => {
+          const adminUrl = window.location.origin.includes('admin') ? '/' : '/admin.html';
+          window.location.href = adminUrl;
+        }, 1000);
+        return;
+      }
       // New user without a registered shop — display registration popup
       const userDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || '';
       if (userDisplayName && !document.getElementById('reg-name').value) {
