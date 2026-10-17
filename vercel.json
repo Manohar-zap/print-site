@@ -1,0 +1,4 @@
+{
+  "buildCommand": "node generate-env.js",
+  "cleanUrls": true
+}
