@@ -289,6 +289,7 @@ button{cursor:pointer;font-family:var(--font-b)}
     <div><div class="page-title">Shops</div><div class="page-sub">All registered print shops</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <input class="search-bar" placeholder="Search name, address&#x2026;" oninput="filterShops(this.value)"/>
+      <button class="btn btn-warn" onclick="markAllInactiveShopsOffline()">🔴 Close Inactive Shops</button>
       <button class="btn btn-p" onclick="openModal('create-shop-modal')">+ Register shop</button>
     </div>
   </div>
@@ -543,25 +544,60 @@ function filterOrders(q){
   renderOrders(allOrders.filter(o=>(o.token||'').toLowerCase().includes(s)||(o.file_name||'').toLowerCase().includes(s)||(o.shops?.name||'').toLowerCase().includes(s)));
 }
 
+let adminShopsPresence = null;
+let activeAdminPresenceIds = new Set();
+
+function initAdminShopsPresence() {
+  if (adminShopsPresence) return;
+  adminShopsPresence = sb.channel('shops-presence');
+  adminShopsPresence
+    .on('presence', { event: 'sync' }, () => {
+      activeAdminPresenceIds.clear();
+      const state = adminShopsPresence.presenceState();
+      Object.keys(state).forEach(k => {
+        activeAdminPresenceIds.add(k);
+        state[k].forEach(p => { if (p.shop_id) activeAdminPresenceIds.add(p.shop_id); });
+      });
+      if (document.getElementById('page-shops')?.classList.contains('active')) {
+        renderShops(allShops);
+      }
+    })
+    .subscribe();
+}
+
 async function loadShops(){
+  initAdminShopsPresence();
   const {data}=await sb.from('shops').select('*,profiles(name,email)').order('created_at',{ascending:false});
-  allShops=data||[];renderShops(allShops);
+  allShops=data||[];
+  renderShops(allShops);
 }
 
 function renderShops(shops){
   const tb=document.getElementById('shops-body');
   if(!shops.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray)">No shops yet</td></tr>';return;}
-  tb.innerHTML=shops.map(s=>`<tr>
-    <td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--gray)">${s.profiles?.name||'&#x2014;'} &middot; ${s.profiles?.email||'&#x2014;'}</div></td>
-    <td style="font-size:12px;color:var(--gray);max-width:150px">${s.address}</td>
-    <td><code style="background:var(--surf2);padding:2px 8px;border-radius:6px;font-size:12px">${s.shop_code||'&#x2014;'}</code></td>
-    <td><span class="badge b-${s.status}">${s.status}</span></td>
-    <td id="sc-${s.id}" style="color:var(--gray)">&#x2014;</td>
-    <td><div style="display:flex;gap:6px">
-      <button class="btn btn-g btn-sm" onclick="showShopModal(${escJ(s)})">Details</button>
-      ${s.status!=='offline'?`<button class="btn btn-err btn-sm" onclick="setShopStatus('${s.id}','offline');event.stopPropagation()">Block</button>`:`<button class="btn btn-ok btn-sm" onclick="setShopStatus('${s.id}','open');event.stopPropagation()">Unblock</button>`}
-    </div></td>
-  </tr>`).join('');
+  
+  tb.innerHTML=shops.map(s=>{
+    const isAppRunning = activeAdminPresenceIds.has(s.id);
+    const liveTag = isAppRunning
+      ? '<div style="color:var(--green);font-size:11px;font-weight:600;margin-top:3px">● Live (App open)</div>'
+      : '<div style="color:var(--gray);font-size:11px;margin-top:3px">○ Inactive (App closed)</div>';
+
+    return `<tr>
+      <td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--gray)">${s.profiles?.name||'&#x2014;'} &middot; ${s.profiles?.email||'&#x2014;'}</div></td>
+      <td style="font-size:12px;color:var(--gray);max-width:150px">${s.address}</td>
+      <td><code style="background:var(--surf2);padding:2px 8px;border-radius:6px;font-size:12px">${s.shop_code||'&#x2014;'}</code></td>
+      <td>
+        <span class="badge b-${s.status}">${s.status}</span>
+        ${liveTag}
+      </td>
+      <td id="sc-${s.id}" style="color:var(--gray)">&#x2014;</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-g btn-sm" onclick="showShopModal(${escJ(s)})">Details</button>
+        ${s.status!=='offline'?`<button class="btn btn-err btn-sm" onclick="setShopStatus('${s.id}','offline');event.stopPropagation()">Close Shop</button>`:`<button class="btn btn-ok btn-sm" onclick="setShopStatus('${s.id}','open');event.stopPropagation()">Open Shop</button>`}
+      </div></td>
+    </tr>`;
+  }).join('');
+
   shops.forEach(async s=>{
     const {count}=await sb.from('orders').select('id',{count:'exact'}).eq('shop_id',s.id);
     const el=document.getElementById('sc-'+s.id);if(el)el.textContent=count||0;
@@ -576,7 +612,20 @@ function filterShops(q){
 async function setShopStatus(shopId,status){
   const {error}=await sb.from('shops').update({status}).eq('id',shopId);
   if(error)return toast('Failed: '+error.message,'err');
-  toast('Shop '+(status==='offline'?'blocked':'unblocked'),'ok');loadShops();
+  toast('Shop status updated to ' + status,'ok');
+  loadShops();
+}
+
+async function markAllInactiveShopsOffline() {
+  let count = 0;
+  for (const shop of allShops) {
+    if (!activeAdminPresenceIds.has(shop.id) && shop.status !== 'offline') {
+      await sb.from('shops').update({ status: 'offline' }).eq('id', shop.id);
+      count++;
+    }
+  }
+  toast(`Marked ${count} inactive shop(s) as closed/offline`, 'ok');
+  loadShops();
 }
 
 async function loadUsers(){

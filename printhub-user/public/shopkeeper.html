@@ -575,7 +575,85 @@ async function doAuth() {
   }
 }
 
+let webShopPresenceChannel = null;
+let webHeartbeatInterval = null;
+
+async function trackWebShopPresence(shop) {
+  if (!shop || !sb) return;
+  if (webHeartbeatInterval) clearInterval(webHeartbeatInterval);
+  if (webShopPresenceChannel) {
+    try { await webShopPresenceChannel.untrack(); sb.removeChannel(webShopPresenceChannel); } catch {}
+    webShopPresenceChannel = null;
+  }
+
+  // Mark open in DB when console is open
+  try {
+    await sb.from('shops').update({ status: 'open' }).eq('id', shop.id);
+    shop.status = 'open';
+    const statusSelect = document.getElementById('shop-status-select');
+    if (statusSelect) statusSelect.value = 'open';
+  } catch (e) {}
+
+  webShopPresenceChannel = sb.channel('shops-presence', {
+    config: { presence: { key: shop.id } }
+  });
+
+  webShopPresenceChannel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      try {
+        await webShopPresenceChannel.track({
+          shop_id: shop.id,
+          name: shop.name,
+          status: 'open',
+          online: true,
+          updated_at: Date.now()
+        });
+      } catch (e) {}
+    }
+  });
+
+  webHeartbeatInterval = setInterval(async () => {
+    if (!currentShop || !webShopPresenceChannel) return;
+    try {
+      await webShopPresenceChannel.track({
+        shop_id: currentShop.id,
+        name: currentShop.name,
+        status: currentShop.status || 'open',
+        online: true,
+        updated_at: Date.now()
+      });
+    } catch (e) {}
+  }, 30000);
+}
+
+async function releaseWebShopPresence() {
+  if (webHeartbeatInterval) {
+    clearInterval(webHeartbeatInterval);
+    webHeartbeatInterval = null;
+  }
+  if (webShopPresenceChannel) {
+    try {
+      await webShopPresenceChannel.untrack();
+      sb.removeChannel(webShopPresenceChannel);
+    } catch (e) {}
+    webShopPresenceChannel = null;
+  }
+  if (currentShop) {
+    try {
+      await sb.from('shops').update({ status: 'offline' }).eq('id', currentShop.id);
+      currentShop.status = 'offline';
+    } catch (e) {}
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  if (currentShop) {
+    releaseWebShopPresence();
+  }
+});
+
 async function doLogout() {
+  await releaseWebShopPresence();
   if (realtimeChannel) sb.removeChannel(realtimeChannel);
   await sb.auth.signOut();
   currentUser = null; currentShop = null;
@@ -645,6 +723,7 @@ async function initApp(user) {
     document.getElementById('topbar-shop').textContent = shop.name;
     document.getElementById('shop-status-select').value = shop.status || 'open';
 
+    await trackWebShopPresence(shop);
     await loadQueue();
     await loadDayStats();
     subscribeRealtime();

@@ -58,6 +58,8 @@ let mainWindow     = null;
 let tray           = null;
 let sb             = null;
 let realtimeChannel = null;
+let presenceChannel = null;
+let heartbeatInterval = null;
 let printQueue     = null;
 let printerService = null;
 let currentShop    = null;
@@ -202,6 +204,85 @@ function subscribeToShop(shopId) {
     });
 }
 
+// ── Shop Presence & Live Heartbeat ─────────────────────────────────────────────
+async function trackShopPresence(shop) {
+  if (!shop || !sb) return;
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  if (presenceChannel) {
+    try { await presenceChannel.untrack(); sb.removeChannel(presenceChannel); } catch {}
+    presenceChannel = null;
+  }
+
+  try {
+    // When the app is actively running, mark shop as open in database
+    await sb.from('shops').update({ status: 'open' }).eq('id', shop.id);
+    shop.status = 'open';
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('shop-loaded', shop);
+    }
+  } catch (err) {
+    console.warn('[presence] Failed to update shop status to open:', err.message);
+  }
+
+  presenceChannel = sb.channel('shops-presence', {
+    config: { presence: { key: shop.id } }
+  });
+
+  presenceChannel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      try {
+        await presenceChannel.track({
+          shop_id: shop.id,
+          name: shop.name,
+          status: shop.status || 'open',
+          online: true,
+          updated_at: Date.now()
+        });
+        console.log('[presence] Shop presence active for:', shop.name, shop.id);
+      } catch (err) {
+        console.warn('[presence] Track error:', err.message);
+      }
+    }
+  });
+
+  // Active heartbeat ping every 30s while desktop app runs
+  heartbeatInterval = setInterval(async () => {
+    if (!currentShop || !presenceChannel) return;
+    try {
+      await presenceChannel.track({
+        shop_id: currentShop.id,
+        name: currentShop.name,
+        status: currentShop.status || 'open',
+        online: true,
+        updated_at: Date.now()
+      });
+    } catch {}
+  }, 30000);
+}
+
+async function releaseShopPresence() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  if (presenceChannel) {
+    try {
+      await presenceChannel.untrack();
+      sb?.removeChannel(presenceChannel);
+    } catch {}
+    presenceChannel = null;
+  }
+  if (currentShop && sb) {
+    try {
+      console.log('[presence] Desktop app closing — marking shop offline in DB:', currentShop.id);
+      await sb.from('shops').update({ status: 'offline' }).eq('id', currentShop.id);
+      currentShop.status = 'offline';
+    } catch (err) {
+      console.warn('[presence] Failed to mark shop offline:', err.message);
+    }
+  }
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 function showNotification(title, body) {
   if (Notification.isSupported()) {
@@ -283,6 +364,7 @@ async function onAuthenticated(user) {
   }
 
   currentShop = shop;
+  await trackShopPresence(shop);
   subscribeToShop(shop.id);
   printQueue.setShop(shop, sb);
   mainWindow?.webContents.send('shop-loaded', shop);
@@ -443,6 +525,7 @@ ipcMain.handle('auth:google', async () => {
 });
 
 ipcMain.handle('auth:logout', async () => {
+  await releaseShopPresence();
   clearSession();
   await sb.auth.signOut().catch(() => {});
   currentShop = null;
@@ -539,6 +622,19 @@ ipcMain.handle('shop:set-status', async (_, status) => {
   const { error } = await sb.from('shops').update({ status }).eq('id', currentShop.id);
   if (error) return { ok: false, error: error.message };
   currentShop.status = status;
+  if (presenceChannel) {
+    if (status === 'offline') {
+      await presenceChannel.untrack().catch(() => {});
+    } else {
+      await presenceChannel.track({
+        shop_id: currentShop.id,
+        name: currentShop.name,
+        status: status,
+        online: true,
+        updated_at: Date.now()
+      }).catch(() => {});
+    }
+  }
   return { ok: true };
 });
 
@@ -620,8 +716,19 @@ app.whenReady().then(async () => {
 // Keep app alive when all windows close (tray app)
 app.on('window-all-closed', () => {});
 
-app.on('before-quit', () => {
+app.on('before-quit', async (event) => {
   app.isQuiting = true;
+  await releaseShopPresence();
   if (realtimeChannel) sb?.removeChannel(realtimeChannel);
   printerService?.destroy();
+});
+
+process.on('SIGINT', async () => {
+  await releaseShopPresence();
+  app.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await releaseShopPresence();
+  app.exit(0);
 });

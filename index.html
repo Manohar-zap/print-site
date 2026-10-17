@@ -170,6 +170,9 @@ h1 .blue{color:var(--blue)}
 .d-open{background:var(--green);box-shadow:0 0 7px rgba(0,230,122,.5)}
 .d-busy{background:var(--amber);box-shadow:0 0 7px rgba(255,170,0,.4)}
 .d-paused{background:var(--gray)}
+.d-offline{background:var(--red);box-shadow:0 0 7px rgba(255,68,68,.4)}
+.shop-card.closed{opacity:.55;cursor:not-allowed;background:rgba(255,255,255,.015);border-color:rgba(255,68,68,.15)}
+.shop-card.closed:hover{border-color:rgba(255,68,68,.3)}
 .shop-info{flex:1}
 .shop-name{font-weight:500;font-size:14px;margin-bottom:2px}
 .shop-addr{font-size:12px;color:var(--gray)}
@@ -693,37 +696,135 @@ function goStep(n) {
   window.scrollTo(0, 0);
 }
 
-// ── SHOPS ────────────────────────────────────────────────────
+// ── SHOPS & LIVE PRESENCE ────────────────────────────────────
+let shopsPresenceChannel = null;
+let activePresenceShops = new Set();
+let loadedShops = [];
+
+function initShopsPresence() {
+  if (shopsPresenceChannel) return;
+  shopsPresenceChannel = sb.channel('shops-presence');
+  shopsPresenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      syncPresenceShops();
+      if (document.getElementById('screen-order')?.classList.contains('active') && currentStep === 3) {
+        renderShopsList();
+      }
+    })
+    .subscribe();
+}
+
+function syncPresenceShops() {
+  activePresenceShops.clear();
+  if (!shopsPresenceChannel) return;
+  const state = shopsPresenceChannel.presenceState();
+  Object.keys(state).forEach(key => {
+    activePresenceShops.add(key);
+    state[key].forEach(p => {
+      if (p.shop_id) activePresenceShops.add(p.shop_id);
+    });
+  });
+}
+
 async function loadShops() {
+  initShopsPresence();
   const el = document.getElementById('shop-list');
-  el.innerHTML = '<div style="color:var(--gray);text-align:center;padding:40px;font-size:13px">Loading shops…</div>';
-  const { data, error } = await sb.from('shops').select('*').neq('status', 'offline').order('created_at');
+  el.innerHTML = '<div style="color:var(--gray);text-align:center;padding:40px;font-size:13px">Loading nearby print shops…</div>';
+
+  // Brief pause for presence sync
+  await new Promise(r => setTimeout(r, 400));
+  syncPresenceShops();
+
+  const { data, error } = await sb.from('shops').select('*').order('created_at');
   if (error || !data?.length) {
-    el.innerHTML = '<div style="color:var(--gray);text-align:center;padding:40px;font-size:13px">No shops available right now. Try again shortly.</div>';
+    el.innerHTML = '<div style="color:var(--gray);text-align:center;padding:40px;font-size:13px">No print shops found. Try again shortly.</div>';
     return;
   }
+  loadedShops = data;
+  renderShopsList();
+}
+
+function renderShopsList() {
+  const el = document.getElementById('shop-list');
+  if (!loadedShops.length) return;
+  syncPresenceShops();
   el.innerHTML = '';
-  data.forEach(shop => {
-    const dotCls = { open: 'd-open', busy: 'd-busy', paused: 'd-paused' }[shop.status] || 'd-paused';
-    const statusTxt = { open: '⚡ Open · Ready to print', busy: '🟡 Busy — short wait', paused: '⏸ Temporarily paused' }[shop.status] || shop.status;
+
+  // Sort: Open & active shops at the top, closed/offline shops at the bottom
+  const sorted = [...loadedShops].sort((a, b) => {
+    const aOpen = activePresenceShops.has(a.id) && a.status !== 'offline';
+    const bOpen = activePresenceShops.has(b.id) && b.status !== 'offline';
+    if (aOpen && !bOpen) return -1;
+    if (!aOpen && bOpen) return 1;
+    return 0;
+  });
+
+  sorted.forEach(shop => {
+    const isAppRunning = activePresenceShops.has(shop.id);
+    const isAvailable = isAppRunning && shop.status !== 'offline';
+
+    let dotCls = 'd-offline';
+    let statusTxt = '🔴 Closed · App not open';
+    let isClickable = false;
+
+    if (isAvailable) {
+      if (shop.status === 'busy') {
+        dotCls = 'd-busy';
+        statusTxt = '🟡 Busy · Short wait';
+        isClickable = true;
+      } else if (shop.status === 'paused') {
+        dotCls = 'd-paused';
+        statusTxt = '⏸ Temporarily paused';
+        isClickable = false;
+      } else {
+        dotCls = 'd-open';
+        statusTxt = '⚡ Open · Ready to print';
+        isClickable = true;
+      }
+    } else {
+      dotCls = 'd-offline';
+      statusTxt = (shop.status === 'offline') ? '🔴 Closed · Offline' : '🔴 Closed · Shopkeeper offline';
+      isClickable = false;
+    }
+
     const card = document.createElement('div');
-    card.className = 'shop-card';
+    const isSelected = selectedShop?.id === shop.id;
+    card.className = `shop-card ${!isClickable ? 'closed' : ''} ${isSelected ? 'sel' : ''}`;
     card.innerHTML = `
       <div class="shop-dot ${dotCls}"></div>
       <div class="shop-info">
-        <div class="shop-name">${shop.name}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <div class="shop-name">${shop.name}</div>
+          <span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;${isClickable ? 'background:rgba(0,230,122,.12);color:var(--green);border:1px solid rgba(0,230,122,.25)' : 'background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)'}">
+            ${isClickable ? 'Accepting Orders' : 'Closed'}
+          </span>
+        </div>
         <div class="shop-addr">${shop.address}</div>
         <div class="shop-tags"><span class="shop-tag">${statusTxt}</span></div>
       </div>
     `;
-    card.onclick = () => {
-      document.querySelectorAll('.shop-card').forEach(c => c.classList.remove('sel'));
-      card.classList.add('sel');
-      selectedShop = shop;
-      document.getElementById('btn-next3').disabled = false;
-    };
+
+    if (isClickable) {
+      card.onclick = () => {
+        document.querySelectorAll('.shop-card').forEach(c => c.classList.remove('sel'));
+        card.classList.add('sel');
+        selectedShop = shop;
+        document.getElementById('btn-next3').disabled = false;
+      };
+    } else {
+      card.onclick = () => {
+        toast('This print shop is currently closed. Please select an open shop.', 'err');
+      };
+    }
+
     el.appendChild(card);
   });
+
+  // If currently selected shop became closed, deselect it and disable Next button
+  if (selectedShop && (!activePresenceShops.has(selectedShop.id) || selectedShop.status === 'offline')) {
+    selectedShop = null;
+    document.getElementById('btn-next3').disabled = true;
+  }
 }
 
 // ── REVIEW ───────────────────────────────────────────────────
