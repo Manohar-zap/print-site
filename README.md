@@ -28,16 +28,30 @@ A complete cloud-connected printing platform:
 
 ---
 
-## 🌐 Web Portals (Local Server)
+## 🌐 2 Vercel Deployments (User & Admin)
 
-Run [`START_LOCAL_DEV.bat`](file:///c:/Users/zapma/CODES/PrintHub/START_LOCAL_DEV.bat) (or `npm run dev` inside `printhub-electron/printhub-user`):
+You can create two independent Vercel projects from this single GitHub repository:
 
-* **Customer Portal:** [http://localhost:3000/](http://localhost:3000/)  
-  *(File: [`printhub-electron/printhub-user/index.html`](file:///c:/Users/zapma/CODES/PrintHub/printhub-electron/printhub-user/index.html))*
-* **Shopkeeper Dashboard:** [http://localhost:3000/shopkeeper.html](http://localhost:3000/shopkeeper.html)  
-  *(File: [`printhub-electron/printhub-user/shopkeeper.html`](file:///c:/Users/zapma/CODES/PrintHub/printhub-electron/printhub-user/shopkeeper.html))*
-* **Admin Dashboard:** [http://localhost:3000/admin.html](http://localhost:3000/admin.html)  
-  *(File: [`printhub-electron/printhub-user/admin.html`](file:///c:/Users/zapma/CODES/PrintHub/printhub-electron/printhub-user/admin.html))*
+### 1️⃣ User / Customer Portal Link
+* **Vercel Project Name:** `printhub-user` (or any custom name)
+* **Root Directory in Vercel Settings:** `printhub-user`
+* **Build Command:** `npm run build`
+* **Output Directory:** `.`
+* **Result:** `https://your-user-app.vercel.app` (Customer PDF upload & print token ordering)
+
+### 2️⃣ Admin Dashboard Link
+* **Vercel Project Name:** `printhub-admin` (or any custom name)
+* **Root Directory in Vercel Settings:** `printhub-admin`
+* **Build Command:** `npm run build`
+* **Output Directory:** `.`
+* **Result:** `https://your-admin-app.vercel.app` (Direct Admin Oversight & Analytics)
+
+---
+
+## 💻 1 Desktop Application (For Shopkeeper)
+* **Installer:** [`installer/Printhub Setup 1.0.6.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.6.exe)
+* **Launcher:** Double-click [`RUN_INSTALLER.bat`](file:///c:/Users/zapma/CODES/PrintHub/RUN_INSTALLER.bat)
+* **Features:** Google Sign-In, real-time incoming orders, manual printer dispatch, and offline print control.
 
 ---
 
