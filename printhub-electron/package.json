@@ -1,6 +1,6 @@
 {
   "name": "printhub-desktop",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Printhub Shop Desktop App — Manual print operator console",
   "main": "src/main.js",
   "scripts": {

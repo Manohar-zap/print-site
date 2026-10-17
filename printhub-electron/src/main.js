@@ -245,15 +245,30 @@ function clearSession() {
  * realtime subscription — then notify the renderer.
  */
 async function onAuthenticated(user) {
-  const { data: shop, error: shopErr } = await sb
+  let { data: shop, error: shopErr } = await sb
     .from('shops')
     .select('*')
     .eq('owner_id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (shopErr || !shop) {
-    console.warn('[auth] No shop for user:', user.email, shopErr?.message);
-    return null;
+  if (!shop) {
+    console.warn('[auth] No shop found for user:', user.email, '— creating default shop');
+    const defaultName = (user.user_metadata?.full_name || user.email?.split('@')[0] || 'My') + ' Print Shop';
+    const { data: newShop } = await sb
+      .from('shops')
+      .insert({
+        owner_id: user.id,
+        name: defaultName,
+        status: 'open',
+      })
+      .select()
+      .maybeSingle();
+
+    if (newShop) {
+      shop = newShop;
+    } else {
+      return null;
+    }
   }
 
   currentShop = shop;
@@ -283,6 +298,103 @@ ipcMain.handle('auth:login', async (_, { email, password }) => {
     return { ok: true, shop, user: { id: data.user.id, email: data.user.email } };
   } catch (e) {
     return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('auth:google', async () => {
+  try {
+    const { data: authData, error: authErr } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        skipBrowserRedirect: true,
+        redirectTo: 'http://localhost:3000/shopkeeper.html'
+      }
+    });
+
+    if (authErr) {
+      const msg = authErr.message || '';
+      if (msg.includes('not enabled') || msg.includes('Unsupported provider')) {
+        return { ok: false, error: 'Google provider is not enabled in your Supabase project. Please enable Google in Supabase Dashboard → Auth → Providers, or sign in with Email.' };
+      }
+      return { ok: false, error: msg };
+    }
+
+    if (!authData?.url) {
+      return { ok: false, error: 'Failed to generate Google authentication URL.' };
+    }
+
+    return new Promise((resolve) => {
+      let resolved = false;
+      const authWin = new BrowserWindow({
+        width: 520,
+        height: 680,
+        parent: mainWindow,
+        modal: true,
+        show: true,
+        title: 'Sign in with Google',
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+        }
+      });
+
+      // Google blocks sign-in from user-agents containing 'Electron'
+      authWin.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+      const finishAuth = async (rawUrl) => {
+        if (resolved) return;
+        try {
+          const parsed = new URL(rawUrl);
+          const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.substring(1) : parsed.hash);
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          const code = parsed.searchParams.get('code');
+
+          if (accessToken && refreshToken) {
+            resolved = true;
+            authWin.destroy();
+            const { data, error } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+            if (error || !data?.session) {
+              return resolve({ ok: false, error: error?.message || 'Failed to establish session' });
+            }
+            saveSession(data.session);
+            const shop = await onAuthenticated(data.user);
+            if (!shop) {
+              return resolve({ ok: false, error: 'Signed in, but no shop is linked. Please check with your administrator.' });
+            }
+            return resolve({ ok: true, shop, user: { id: data.user.id, email: data.user.email } });
+          } else if (code) {
+            resolved = true;
+            authWin.destroy();
+            const { data, error } = await sb.auth.exchangeCodeForSession(code);
+            if (error || !data?.session) {
+              return resolve({ ok: false, error: error?.message || 'Failed to exchange auth code' });
+            }
+            saveSession(data.session);
+            const shop = await onAuthenticated(data.user);
+            if (!shop) {
+              return resolve({ ok: false, error: 'Signed in, but no shop is linked. Please check with your administrator.' });
+            }
+            return resolve({ ok: true, shop, user: { id: data.user.id, email: data.user.email } });
+          }
+        } catch (e) {
+          console.error('[auth:google] Navigation callback error:', e);
+        }
+      };
+
+      authWin.webContents.on('will-redirect', (_, url) => finishAuth(url));
+      authWin.webContents.on('will-navigate', (_, url) => finishAuth(url));
+
+      authWin.on('closed', () => {
+        if (!resolved) {
+          resolve({ ok: false, error: 'Google sign-in was closed' });
+        }
+      });
+
+      authWin.loadURL(authData.url);
+    });
+  } catch (err) {
+    return { ok: false, error: err.message };
   }
 });
 

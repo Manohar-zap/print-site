@@ -16,6 +16,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('ph', {
   // ── Auth ──────────────────────────────────────────────────────────────────
   login:              (creds)   => ipcRenderer.invoke('auth:login', creds),
+  loginGoogle:        ()        => ipcRenderer.invoke('auth:google'),
   logout:             ()        => ipcRenderer.invoke('auth:logout'),
   getSavedSession:    ()        => ipcRenderer.invoke('auth:saved-session'),
 

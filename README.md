@@ -20,9 +20,9 @@ A complete cloud-connected printing platform:
 
 ## 📦 Desktop App Windows Setup File (.exe)
 
-* **Location:** [`installer/Printhub Setup 1.0.4.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.4.exe)
-* **Full path:** `c:\Users\zapma\CODES\PrintHub\installer\Printhub Setup 1.0.4.exe`
-* **Version:** **1.0.4 (Fixed & Tested)**
+* **Location:** [`installer/Printhub Setup 1.0.5.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.5.exe)
+* **Full path:** `c:\Users\zapma\CODES\PrintHub\installer\Printhub Setup 1.0.5.exe`
+* **Version:** **1.0.5 (Google Sign-In & Tested)**
 * **File size:** ~76.5 MB
 * **How to run:** Double-click the file above or double-click [`RUN_INSTALLER.bat`](file:///c:/Users/zapma/CODES/PrintHub/RUN_INSTALLER.bat).
 
@@ -49,7 +49,7 @@ PrintHub/
 ├── START_LOCAL_DEV.bat         ← Double-click to start local test server (Port 3000)
 ├── BUILD_INSTALLER.bat         ← Double-click to rebuild the Desktop app installer
 ├── installer/
-│   └── Printhub Setup 1.0.4.exe← The Windows installer executable (76.5 MB)
+│   └── Printhub Setup 1.0.5.exe← The Windows installer executable (76.5 MB)
 ├── admin.html                  ← Standalone admin portal
 ├── PRINTHUB_README.md          ← Original full platform setup guide
 └── printhub-electron/          ← Desktop application & Web portal source
