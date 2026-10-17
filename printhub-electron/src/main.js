@@ -24,6 +24,7 @@ const {
   dialog,
 } = require('electron');
 const path   = require('path');
+const http   = require('http');
 const Store  = require('electron-store');
 const { createClient } = require('@supabase/supabase-js');
 const ws     = require('ws');
@@ -311,13 +312,22 @@ ipcMain.handle('auth:login', async (_, { email, password }) => {
   }
 });
 
+let authBridgeServer = null;
+
+function stopAuthBridge() {
+  if (authBridgeServer) {
+    try { authBridgeServer.close(); } catch {}
+    authBridgeServer = null;
+  }
+}
+
 ipcMain.handle('auth:google', async () => {
   try {
     const { data: authData, error: authErr } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
         skipBrowserRedirect: true,
-        redirectTo: 'http://localhost:3000/shopkeeper.html'
+        redirectTo: 'http://localhost:3000/desktop-callback.html'
       }
     });
 
@@ -333,75 +343,99 @@ ipcMain.handle('auth:google', async () => {
       return { ok: false, error: 'Failed to generate Google authentication URL.' };
     }
 
+    stopAuthBridge();
+
     return new Promise((resolve) => {
       let resolved = false;
-      const authWin = new BrowserWindow({
-        width: 520,
-        height: 680,
-        parent: mainWindow,
-        modal: true,
-        show: true,
-        title: 'Sign in with Google',
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
+
+      authBridgeServer = http.createServer((req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+          res.writeHead(204);
+          res.end();
+          return;
         }
+
+        const parsedUrl = new URL(req.url, 'http://127.0.0.1:45678');
+        if (parsedUrl.pathname === '/auth-bridge') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', async () => {
+            try {
+              let payload = {};
+              if (body) {
+                payload = JSON.parse(body);
+              } else {
+                payload = {
+                  access_token: parsedUrl.searchParams.get('access_token'),
+                  refresh_token: parsedUrl.searchParams.get('refresh_token'),
+                };
+              }
+
+              if (payload.access_token && payload.refresh_token) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true }));
+
+                if (!resolved) {
+                  resolved = true;
+                  stopAuthBridge();
+
+                  const { data, error } = await sb.auth.setSession({
+                    access_token: payload.access_token,
+                    refresh_token: payload.refresh_token,
+                  });
+
+                  if (error || !data?.session) {
+                    return resolve({ ok: false, error: error?.message || 'Failed to establish session' });
+                  }
+
+                  saveSession(data.session);
+                  const shop = await onAuthenticated(data.user);
+                  if (!shop) {
+                    return resolve({ ok: false, error: 'Signed in, but no shop is linked to this account.' });
+                  }
+
+                  if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                  }
+
+                  return resolve({ ok: true, shop, user: { id: data.user.id, email: data.user.email } });
+                }
+              } else {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Missing tokens' }));
+              }
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
+        res.writeHead(404);
+        res.end();
       });
 
-      // Google blocks sign-in from user-agents containing 'Electron'
-      authWin.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+      authBridgeServer.listen(45678, '127.0.0.1', () => {
+        console.log('[auth-bridge] Listening for browser callback on http://127.0.0.1:45678/auth-bridge');
+      });
 
-      const finishAuth = async (rawUrl) => {
-        if (resolved) return;
-        try {
-          const parsed = new URL(rawUrl);
-          const hashParams = new URLSearchParams(parsed.hash.startsWith('#') ? parsed.hash.substring(1) : parsed.hash);
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          const code = parsed.searchParams.get('code');
+      // Open the user's real default browser (Chrome, Edge, etc.)
+      shell.openExternal(authData.url);
 
-          if (accessToken && refreshToken) {
-            resolved = true;
-            authWin.destroy();
-            const { data, error } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-            if (error || !data?.session) {
-              return resolve({ ok: false, error: error?.message || 'Failed to establish session' });
-            }
-            saveSession(data.session);
-            const shop = await onAuthenticated(data.user);
-            if (!shop) {
-              return resolve({ ok: false, error: 'Signed in, but no shop is linked. Please check with your administrator.' });
-            }
-            return resolve({ ok: true, shop, user: { id: data.user.id, email: data.user.email } });
-          } else if (code) {
-            resolved = true;
-            authWin.destroy();
-            const { data, error } = await sb.auth.exchangeCodeForSession(code);
-            if (error || !data?.session) {
-              return resolve({ ok: false, error: error?.message || 'Failed to exchange auth code' });
-            }
-            saveSession(data.session);
-            const shop = await onAuthenticated(data.user);
-            if (!shop) {
-              return resolve({ ok: false, error: 'Signed in, but no shop is linked. Please check with your administrator.' });
-            }
-            return resolve({ ok: true, shop, user: { id: data.user.id, email: data.user.email } });
-          }
-        } catch (e) {
-          console.error('[auth:google] Navigation callback error:', e);
-        }
-      };
-
-      authWin.webContents.on('will-redirect', (_, url) => finishAuth(url));
-      authWin.webContents.on('will-navigate', (_, url) => finishAuth(url));
-
-      authWin.on('closed', () => {
+      // Timeout after 3 minutes if user didn't complete login
+      setTimeout(() => {
         if (!resolved) {
-          resolve({ ok: false, error: 'Google sign-in was closed' });
+          resolved = true;
+          stopAuthBridge();
+          resolve({ ok: false, error: 'Google sign-in timed out. Please try again or use Email login.' });
         }
-      });
-
-      authWin.loadURL(authData.url);
+      }, 180000);
     });
   } catch (err) {
     return { ok: false, error: err.message };

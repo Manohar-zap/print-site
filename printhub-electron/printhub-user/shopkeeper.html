@@ -601,6 +601,26 @@ async function initApp(user) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
 
+  // If Desktop App requested authentication bridge, notify it
+  try {
+    const sessionRes = await sb.auth.getSession();
+    const sess = sessionRes?.data?.session;
+    if (sess?.access_token && sess?.refresh_token) {
+      fetch('http://127.0.0.1:45678/auth-bridge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: sess.access_token,
+          refresh_token: sess.refresh_token
+        })
+      }).then(r => r.json()).then(data => {
+        if (data && data.ok) {
+          toast('🎉 Connected to PrintHub Desktop App! You can switch back to the desktop window.', 'success');
+        }
+      }).catch(() => {});
+    }
+  } catch (e) {}
+
   // Load shop
   try {
     const { data: shop, error } = await sb.from('shops').select('*').eq('owner_id', user.id).maybeSingle();

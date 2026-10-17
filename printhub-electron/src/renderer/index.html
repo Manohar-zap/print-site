@@ -352,9 +352,9 @@ async function loginWithGoogle() {
   const btn = document.getElementById('btn-google-login');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = 'Connecting to Google…';
+    btn.innerHTML = '🌐 Complete sign in in your browser…';
   }
-  toast('Opening Google sign in…', 'inf');
+  toast('Opening your browser for secure Google Sign-In…', 'inf');
   const res = await window.ph.loginGoogle();
   if (btn) {
     btn.disabled = false;

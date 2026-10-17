@@ -20,9 +20,9 @@ A complete cloud-connected printing platform:
 
 ## 📦 Desktop App Windows Setup File (.exe)
 
-* **Location:** [`installer/Printhub Setup 1.0.6.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.6.exe)
-* **Full path:** `c:\Users\zapma\CODES\PrintHub\installer\Printhub Setup 1.0.6.exe`
-* **Version:** **1.0.6 (Admin & Google Sign-In Enabled)**
+* **Location:** [`installer/Printhub Setup 1.0.7.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.7.exe)
+* **Full path:** `c:\Users\zapma\CODES\PrintHub\installer\Printhub Setup 1.0.7.exe`
+* **Version:** **1.0.7 (System Browser Google OAuth & Tested)**
 * **File size:** ~76.5 MB
 * **How to run:** Double-click the file above or double-click [`RUN_INSTALLER.bat`](file:///c:/Users/zapma/CODES/PrintHub/RUN_INSTALLER.bat).
 
@@ -49,7 +49,7 @@ You can create two independent Vercel projects from this single GitHub repositor
 ---
 
 ## 💻 1 Desktop Application (For Shopkeeper)
-* **Installer:** [`installer/Printhub Setup 1.0.6.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.6.exe)
+* **Installer:** [`installer/Printhub Setup 1.0.7.exe`](file:///c:/Users/zapma/CODES/PrintHub/installer/Printhub%20Setup%201.0.7.exe)
 * **Launcher:** Double-click [`RUN_INSTALLER.bat`](file:///c:/Users/zapma/CODES/PrintHub/RUN_INSTALLER.bat)
 * **Features:** Google Sign-In, real-time incoming orders, manual printer dispatch, and offline print control.
 
@@ -63,7 +63,7 @@ PrintHub/
 ├── START_LOCAL_DEV.bat         ← Double-click to start local test server (Port 3000)
 ├── BUILD_INSTALLER.bat         ← Double-click to rebuild the Desktop app installer
 ├── installer/
-│   └── Printhub Setup 1.0.6.exe← The Windows installer executable (76.5 MB)
+│   └── Printhub Setup 1.0.7.exe← The Windows installer executable (76.5 MB)
 ├── admin.html                  ← Standalone admin portal
 ├── PRINTHUB_README.md          ← Original full platform setup guide
 └── printhub-electron/          ← Desktop application & Web portal source
