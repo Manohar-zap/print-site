@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PrintHub — Desktop Login</title>
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #fafaf8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 420px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    p { color: #888; font-size: 14px; line-height: 1.5; margin: 0 0 20px; }
+    .btn {
+      background: #1a6bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon" id="ic">⏳</div>
+    <h2 id="title">Connecting to PrintHub Desktop…</h2>
+    <p id="msg">Please wait while we complete your authentication.</p>
+    <a href="shopkeeper.html" class="btn" id="btn" style="display:none">Open Web Dashboard</a>
+  </div>
+
+  <script>
+    async function handleAuth() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      let accessToken = params.get('access_token');
+      let refreshToken = params.get('refresh_token');
+
+      // Also check query string if code flow
+      if (!accessToken) {
+        const qParams = new URLSearchParams(window.location.search);
+        accessToken = qParams.get('access_token');
+        refreshToken = qParams.get('refresh_token');
+      }
+
+      if (accessToken && refreshToken) {
+        try {
+          const res = await fetch('http://127.0.0.1:45678/auth-bridge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            document.getElementById('ic').textContent = '✅';
+            document.getElementById('title').textContent = 'Signed in successfully!';
+            document.getElementById('msg').textContent = 'Connected to PrintHub Desktop. You can close this tab and return to the app.';
+            document.getElementById('btn').style.display = 'inline-block';
+            setTimeout(() => { window.close(); }, 2000);
+            return;
+          }
+        } catch (e) {
+          console.warn('Bridge POST failed:', e);
+        }
+      }
+
+      // Fallback
+      document.getElementById('ic').textContent = '🎉';
+      document.getElementById('title').textContent = 'Google sign-in completed!';
+      document.getElementById('msg').textContent = 'If the desktop app does not refresh automatically, please switch back to it or open the web dashboard.';
+      document.getElementById('btn').style.display = 'inline-block';
+    }
+
+    handleAuth();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Printhub — Shop Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0a0a0a;--white:#fafaf8;--blue:#1a6bff;--blue-d:#0f4db8;
+  --green:#00e67a;--red:#ff4444;--amber:#ffaa00;--purple:#9f7aea;
+  --gray:#8a8a8a;--border:#1e1e1e;--surf:#111;--surf2:#161616;--surf3:#1a1a1a;
+  --font-h:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--black);color:var(--white);font-family:var(--font-b);font-size:14px;display:flex;flex-direction:column}
+
+/* ── LOGIN ───────────────────────────────────────────────── */
+#login-screen{flex:1;display:flex;align-items:center;justify-content:center;background:var(--black);position:relative;overflow:hidden}
+#login-screen::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(ellipse,rgba(26,107,255,.12) 0%,transparent 70%);pointer-events:none}
+.login-box{background:var(--surf);border:1px solid var(--border);border-radius:20px;padding:48px;width:100%;max-width:420px;position:relative;z-index:1}
+.login-logo{font-family:var(--font-h);font-size:26px;font-weight:800;margin-bottom:4px}
+.login-logo span{color:var(--blue)}
+.login-sub{font-size:13px;color:var(--gray);margin-bottom:36px}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;color:var(--gray);font-weight:500;display:block;margin-bottom:7px}
+.form-input{width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-size:14px;outline:none;transition:border-color .2s;font-family:var(--font-b)}
+.form-input:focus{border-color:var(--blue)}
+.form-input::placeholder{color:var(--gray)}
+.btn{padding:11px 20px;border-radius:9px;font-size:14px;font-weight:500;border:none;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-family:var(--font-b)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-full{width:100%}
+.btn-ghost{background:transparent;color:var(--gray);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--white);border-color:rgba(255,255,255,.2)}
+.btn-sm{padding:7px 14px;font-size:13px}
+.btn-danger{background:rgba(255,68,68,.12);color:var(--red);border:1px solid rgba(255,68,68,.25)}
+.btn-danger:hover{background:rgba(255,68,68,.2)}
+.btn-success{background:rgba(0,230,122,.12);color:var(--green);border:1px solid rgba(0,230,122,.25)}
+.btn-success:hover{background:rgba(0,230,122,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.hidden{display:none!important}
+
+/* ── GOOGLE BUTTON & DIVIDER ────────────────────────────── */
+.btn-google{background:#ffffff;color:#1f1f1f;font-weight:600;font-size:14px;border:1px solid #dadce0;gap:10px;transition:all .2s cubic-bezier(.16,1,.3,1);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn-google:hover{background:#f8f9fa;border-color:#d2e3fc;box-shadow:0 4px 12px rgba(26,107,255,.15);transform:translateY(-1px)}
+.btn-google svg{flex-shrink:0}
+.login-divider{display:flex;align-items:center;text-align:center;margin:22px 0 18px 0;color:var(--gray);font-size:12px}
+.login-divider::before,.login-divider::after{content:'';flex:1;border-bottom:1px solid var(--border)}
+.login-divider span{padding:0 14px;text-transform:uppercase;letter-spacing:.05em;font-size:11px}
+
+/* ── AUTH TABS ──────────────────────────────────────────── */
+.auth-tabs{display:flex;background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:18px}
+.auth-tab{flex:1;background:transparent;border:none;color:var(--gray);font-size:13px;font-weight:600;padding:8px 0;border-radius:7px;transition:all .2s;cursor:pointer;font-family:var(--font-b)}
+.auth-tab.active{background:var(--surf3);color:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+
+/* ── MODAL ──────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:999;animation:mIn .2s ease}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:36px;width:100%;max-width:440px;position:relative;box-shadow:0 24px 48px rgba(0,0,0,.7)}
+.modal-title{font-family:var(--font-h);font-size:22px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--gray);margin-bottom:24px;line-height:1.5}
+.modal-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--white)}
+@keyframes mIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+
+
+/* ── MAIN LAYOUT ─────────────────────────────────────────── */
+#app{flex:1;display:none;overflow:hidden}
+#app.visible{display:flex;flex-direction:column}
+.topbar{height:56px;background:var(--surf);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+.topbar-logo{font-family:var(--font-h);font-size:17px;font-weight:800}
+.topbar-logo span{color:var(--blue)}
+.topbar-shop{font-size:13px;color:var(--gray);border-left:1px solid var(--border);padding-left:16px;margin-left:4px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.connection-pill{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:12px}
+.conn-dot{width:7px;height:7px;border-radius:50%}
+.conn-dot.online{background:var(--green);box-shadow:0 0 6px rgba(0,230,122,.5)}
+.conn-dot.offline{background:var(--red)}
+.shop-status-select{background:var(--surf2);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:6px 10px;font-size:13px;outline:none;font-family:var(--font-b)}
+
+.main-body{flex:1;display:flex;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar{width:200px;background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:16px 12px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:var(--gray);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:2px;border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:var(--surf2);color:var(--white)}
+.nav-item.active{background:rgba(26,107,255,.1);color:var(--blue)}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.nav-divider{height:1px;background:var(--border);margin:10px 0}
+.sidebar-bottom{margin-top:auto}
+
+/* ── CONTENT ─────────────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-family:var(--font-h);font-size:22px;font-weight:700;margin-bottom:20px}
+
+/* ── STATS STRIP ─────────────────────────────────────────── */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surf2);border:1px solid var(--border);border-radius:14px;padding:18px}
+.stat-label{font-size:12px;color:var(--gray);margin-bottom:6px}
+.stat-value{font-family:var(--font-h);font-size:26px;font-weight:700}
+.stat-sub{font-size:11px;color:var(--gray);margin-top:4px}
+
+/* ── QUEUE ───────────────────────────────────────────────── */
+.queue-layout{display:grid;grid-template-columns:1fr 360px;gap:16px}
+.queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.queue-title-sm{font-size:14px;font-weight:600}
+.auto-toggle-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray)}
+.toggle-wrap{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:100px;transition:background .2s;cursor:pointer}
+.toggle-track::before{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-wrap input:checked + .toggle-track{background:var(--green)}
+.toggle-wrap input:checked + .toggle-track::before{transform:translateX(18px)}
+
+/* JOB CARDS */
+.job-card{background:var(--surf2);border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:10px;transition:border-color .2s;position:relative;overflow:hidden}
+.job-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border)}
+.job-card.priority::before{background:var(--amber)}
+.job-card.printing::before{background:var(--green)}
+.job-card.failed::before{background:var(--red)}
+.job-card:hover{border-color:rgba(255,255,255,.12)}
+.job-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.job-token{font-family:var(--font-h);font-size:22px;font-weight:800;color:var(--blue);line-height:1;min-width:44px}
+.job-info{flex:1}
+.job-fname{font-weight:500;font-size:14px;margin-bottom:3px;word-break:break-all}
+.job-meta{font-size:12px;color:var(--gray)}
+.job-badge{flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.badge-queued{background:rgba(26,107,255,.12);color:var(--blue);border:1px solid rgba(26,107,255,.25)}
+.badge-printing{background:rgba(0,230,122,.12);color:var(--green);border:1px solid rgba(0,230,122,.25)}
+.badge-failed{background:rgba(255,68,68,.12);color:var(--red);border:1px solid rgba(255,68,68,.25)}
+.badge-completed{background:rgba(0,230,122,.08);color:rgba(0,230,122,.6);border:1px solid rgba(0,230,122,.15)}
+.badge-pending,.badge-downloading{background:rgba(255,170,0,.12);color:var(--amber);border:1px solid rgba(255,170,0,.25)}
+.badge-priority{background:rgba(255,170,0,.12);color:var(--amber);border:1px solid rgba(255,170,0,.3);font-size:10px;padding:2px 7px;margin-left:6px}
+.job-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ACTIVE JOB PANEL */
+.active-job-panel{background:var(--surf2);border:1px solid rgba(0,230,122,.2);border-radius:14px;padding:20px;height:fit-content;position:sticky;top:0}
+.active-job-title{font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;font-weight:600}
+.active-token-big{font-family:var(--font-h);font-size:52px;font-weight:800;color:var(--green);letter-spacing:.05em;text-align:center;margin:8px 0}
+.active-file{font-size:14px;font-weight:500;text-align:center;margin-bottom:4px}
+.active-meta{font-size:12px;color:var(--gray);text-align:center;margin-bottom:16px}
+.progress-bar{height:6px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:100%;background:var(--green);border-radius:100px;transition:width .5s;animation:progressAnim 2s ease-in-out infinite}
+@keyframes progressAnim{0%{opacity:.7}50%{opacity:1}100%{opacity:.7}}
+.empty-queue{text-align:center;padding:48px 20px}
+.empty-icon{font-size:40px;margin-bottom:14px;opacity:.4}
+.empty-title{font-size:15px;font-weight:500;color:var(--gray);margin-bottom:6px}
+.empty-sub{font-size:12px;color:rgba(138,138,138,.6)}
+
+/* ── ANALYTICS ───────────────────────────────────────────── */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--surf2);border:1px solid var(--border);border-radius:14px;padding:20px}
+.chart-title{font-size:13px;font-weight:600;margin-bottom:16px;color:var(--gray)}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;background:rgba(26,107,255,.3);border-radius:4px 4px 0 0;transition:height .4s;min-height:2px}
+.bar.today{background:var(--blue)}
+.bar-label{font-size:10px;color:var(--gray)}
+.revenue-breakdown{display:flex;flex-direction:column;gap:10px}
+.rev-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.rev-row:last-child{border-bottom:none}
+.rev-lbl{font-size:13px;color:var(--gray)}
+.rev-val{font-family:var(--font-h);font-size:16px;font-weight:700}
+
+/* ── HISTORY ─────────────────────────────────────────────── */
+.history-table{width:100%;border-collapse:collapse}
+.history-table th{text-align:left;font-size:11px;color:var(--gray);font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border)}
+.history-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.history-table tr:hover td{background:rgba(255,255,255,.02)}
+.token-cell{font-family:var(--font-h);font-size:16px;font-weight:700;color:var(--blue)}
+
+/* ── SETTINGS PAGE ───────────────────────────────────────── */
+.settings-section{background:var(--surf2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px}
+.settings-title{font-size:14px;font-weight:600;margin-bottom:18px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-info .setting-name{font-size:14px;font-weight:500;margin-bottom:3px}
+.setting-info .setting-desc{font-size:12px;color:var(--gray)}
+.printer-item{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.printer-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.printer-dot.online{background:var(--green)}
+.printer-dot.offline{background:var(--gray)}
+
+/* ── TOAST ───────────────────────────────────────────────── */
+#toast-wrap{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;min-width:240px;display:flex;align-items:center;gap:8px;animation:toastIn .25s ease}
+@keyframes toastIn{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.success{border-color:rgba(0,230,122,.35)}
+.toast.error{border-color:rgba(255,68,68,.35)}
+.toast.info{border-color:rgba(26,107,255,.35)}
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:18px;padding:36px;width:100%;max-width:440px;position:relative}
+.modal-close{position:absolute;top:16px;right:16px;background:var(--surf2);border:1px solid var(--border);color:var(--gray);width:30px;height:30px;border-radius:7px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.modal-title{font-family:var(--font-h);font-size:20px;font-weight:700;margin-bottom:20px}
+
+@media(max-width:900px){
+  .sidebar{display:none}
+  .stats-strip{grid-template-columns:1fr 1fr}
+  .queue-layout{grid-template-columns:1fr}
+  .analytics-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<!-- ── REGISTER SHOP MODAL ─────────────────────────────── -->
+<div class="modal-overlay hidden" id="register-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('register-modal').classList.add('hidden')">✕</button>
+    <div class="modal-title">Register your shop</div>
+    <div class="modal-sub">Welcome! Enter your shop details once to link your Google account and start receiving print orders.</div>
+    <div class="form-group"><label class="form-label">Shop name</label><input class="form-input" id="reg-name" placeholder="e.g. Copy King — MG Road"/></div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="reg-addr" placeholder="Full address (e.g. Near North Gate)"/></div>
+    <div class="form-group"><label class="form-label">Shop code (customers use this to select your shop)</label><input class="form-input" id="reg-code" placeholder="e.g. PH-2041" maxlength="10"/></div>
+    <button class="btn btn-primary btn-full" id="btn-reg-shop" onclick="registerShop()">Create shop & Open Dashboard →</button>
+  </div>
+</div>
+
+<!-- ── LOGIN ─────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Print<span>hub</span></div>
+    <div class="login-sub">Shop owner dashboard</div>
+
+    <!-- Google One-Click Auth -->
+    <button class="btn btn-full btn-google" id="btn-google-login" onclick="doGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <div class="login-divider"><span>or with email</span></div>
+
+    <!-- Auth Mode Switcher -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" type="button" onclick="setAuthMode('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" type="button" onclick="setAuthMode('signup')">Create Account</button>
+    </div>
+
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="lo-email" placeholder="owner@shop.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="lo-pw" placeholder="••••••••"/></div>
+    <button class="btn btn-primary btn-full" id="btn-submit-auth" onclick="doAuth()">Sign In →</button>
+    <p id="auth-sub-msg" style="margin-top:16px;font-size:12px;color:var(--gray);text-align:center;line-height:1.5">No manual host setup needed. Create an account or sign in with Google to manage your shop.</p>
+  </div>
+</div>
+
+<!-- ── MAIN APP ───────────────────────────────────────────── -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">Print<span>hub</span></div>
+    <div class="topbar-shop" id="topbar-shop">Loading…</div>
+    <div class="topbar-right">
+      <select class="shop-status-select" id="shop-status-select" onchange="updateShopStatus(this.value)">
+        <option value="open">🟢 Open</option>
+        <option value="busy">🟡 Busy</option>
+        <option value="paused">⏸ Paused</option>
+        <option value="offline">🔴 Offline</option>
+      </select>
+      <div class="connection-pill">
+        <div class="conn-dot online" id="conn-dot"></div>
+        <span id="conn-label">Connected</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="main-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <button class="nav-item active" onclick="showPage('queue',this)"><span class="icon">🖨</span>Print Queue</button>
+      <button class="nav-item" onclick="showPage('analytics',this)"><span class="icon">📊</span>Analytics</button>
+      <button class="nav-item" onclick="showPage('history',this)"><span class="icon">📋</span>History</button>
+      <div class="nav-divider"></div>
+      <div class="sidebar-bottom">
+        <button class="nav-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span>Settings</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- PAGE: QUEUE -->
+      <div class="page active" id="page-queue">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div class="page-title" style="margin-bottom:0">Print Queue</div>
+          <span style="font-size:12px;color:var(--gray)">Use the desktop app to print manually</span>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-label">In queue</div>
+            <div class="stat-value" id="stat-queued">0</div>
+            <div class="stat-sub">waiting to print</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Completed today</div>
+            <div class="stat-value" id="stat-done">0</div>
+            <div class="stat-sub">since midnight</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Revenue today</div>
+            <div class="stat-value" id="stat-revenue">₹0</div>
+            <div class="stat-sub">your share (₹2/page)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Failed</div>
+            <div class="stat-value" id="stat-failed" style="color:var(--red)">0</div>
+            <div class="stat-sub">need attention</div>
+          </div>
+        </div>
+
+        <div class="queue-layout">
+          <!-- QUEUE LIST -->
+          <div>
+            <div class="queue-header">
+              <div class="queue-title-sm">Pending jobs</div>
+              <button class="btn btn-ghost btn-sm" onclick="loadQueue()">↺ Refresh</button>
+            </div>
+            <div id="queue-list">
+              <div class="empty-queue">
+                <div class="empty-icon">🖨</div>
+                <div class="empty-title">Queue is empty</div>
+                <div class="empty-sub">New orders will appear here in real time</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIVE JOB -->
+          <div>
+            <div class="queue-header"><div class="queue-title-sm">Currently printing</div></div>
+            <div class="active-job-panel" id="active-job-panel">
+              <div class="active-job-title">No active print</div>
+              <div class="empty-queue" style="padding:24px 0">
+                <div class="empty-icon" style="font-size:32px">💤</div>
+                <div class="empty-sub">Waiting for next job</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: ANALYTICS -->
+      <div class="page" id="page-analytics">
+        <div class="page-title">Analytics</div>
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-label">Today's prints</div>
+            <div class="stat-value" id="an-today">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">This month</div>
+            <div class="stat-value" id="an-month">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monthly revenue</div>
+            <div class="stat-value" id="an-rev">₹0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Failure rate</div>
+            <div class="stat-value" id="an-fail">0%</div>
+          </div>
+        </div>
+        <div class="analytics-grid">
+          <div class="chart-card">
+            <div class="chart-title">Last 7 days — print count</div>
+            <div class="bar-chart" id="bar-chart">
+              <div style="color:var(--gray);font-size:12px;text-align:center;width:100%">Loading…</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Revenue breakdown</div>
+            <div class="revenue-breakdown">
+              <div class="rev-row"><span class="rev-lbl">Your earnings (₹2/page)</span><span class="rev-val" id="rb-shop">₹0</span></div>
+              <div class="rev-row"><span class="rev-lbl">Platform fee (₹1/page)</span><span class="rev-val" id="rb-platform">₹0</span></div>
+              <div class="rev-row"><span class="rev-lbl">Priority fees collected</span><span class="rev-val" id="rb-priority">₹0</span></div>
+              <div class="rev-row" style="border-top:1px solid rgba(255,255,255,.08);margin-top:4px;padding-top:14px"><span class="rev-lbl" style="color:var(--white);font-weight:600">Total billed</span><span class="rev-val" style="color:var(--green)" id="rb-total">₹0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: HISTORY -->
+      <div class="page" id="page-history">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div class="page-title" style="margin-bottom:0">Print History</div>
+          <select class="shop-status-select" id="history-filter" onchange="loadHistory()">
+            <option value="all">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div style="background:var(--surf2);border:1px solid var(--border);border-radius:14px;overflow:hidden">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Token</th><th>File</th><th>Settings</th><th>Amount</th><th>Status</th><th>Time</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--gray)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PAGE: SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="page-title">Settings</div>
+
+        <div class="settings-section">
+          <div class="settings-title">Shop info</div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-name">Shop name</div><div class="setting-desc" id="s-shopname">—</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="toggleEditShop()">Edit</button>
+          </div>
+          <div id="edit-shop-form" style="display:none;margin-top:12px;display:none">
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:5px">Shop name</label><input class="form-input" id="edit-shopname" placeholder="Shop name"/></div>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:var(--gray);display:block;margin-bottom:5px">Address</label><input class="form-input" id="edit-shopaddr" placeholder="Address"/></div>
+            <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="saveShopInfo()">Save</button><button class="btn btn-ghost btn-sm" onclick="toggleEditShop()">Cancel</button></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-name">Shop code (offline mode)</div><div class="setting-desc" id="s-shopcode">—</div></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-name">Address</div><div class="setting-desc" id="s-shopaddr">—</div></div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">Print workflow</div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-name">Manual printing</div><div class="setting-desc">Orders appear in the desktop app. Print each job from there when ready.</div></div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">Printers detected</div>
+          <div id="printer-list">
+            <div style="color:var(--gray);font-size:13px">Connect this app from the desktop printer agent to see printers here.</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">Danger zone</div>
+          <div class="setting-row">
+            <div class="setting-info"><div class="setting-name">Logout</div><div class="setting-desc">Sign out of this device</div></div>
+            <button class="btn btn-danger btn-sm" onclick="doLogout()">Logout</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-body -->
+</div><!-- /app -->
+
+<script src="./env.js"></script>
+<script>
+// ── CONFIG ─────────────────────────────────────────────────
+  var SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) ? window.__ENV.SUPABASE_URL : '';
+var SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) ? window.__ENV.SUPABASE_ANON_KEY : '';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null, currentShop = null;
+let realtimeChannel = null;
+let queueJobs = [];
+
+// ── TOAST ──────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span>${msg}`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── AUTH ───────────────────────────────────────────────────
+
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  const btn = document.getElementById('btn-submit-auth');
+  btn.textContent = mode === 'login' ? 'Sign In →' : 'Create Account →';
+  document.getElementById('auth-sub-msg').textContent = mode === 'login'
+    ? 'Enter your credentials to access your dashboard'
+    : 'Create a free shopkeeper account (no admin approval needed)';
+}
+
+async function doGoogleLogin() {
+  const btn = document.getElementById('btn-google-login');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>Connecting to Google…</span>`;
+  }
+  const redirectUrl = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl
+    }
+  });
+  if (error) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Sign in with Google`;
+    }
+    const msg = error.message || '';
+    if (msg.includes('not enabled') || msg.includes('Unsupported provider')) {
+      toast('Google provider is not enabled in your Supabase project yet. Toggle it ON in Supabase Dashboard → Auth → Providers, or use Email Sign Up below.', 'error');
+    } else {
+      toast(msg, 'error');
+    }
+  }
+}
+
+async function doAuth() {
+  const email = document.getElementById('lo-email').value.trim();
+  const pw = document.getElementById('lo-pw').value;
+  if (!email || !pw) return toast('Enter email and password', 'error');
+
+  const btn = document.getElementById('btn-submit-auth');
+  btn.disabled = true;
+
+  if (authMode === 'login') {
+    const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+    btn.disabled = false;
+    if (error) return toast(error.message, 'error');
+  } else {
+    if (pw.length < 6) {
+      btn.disabled = false;
+      return toast('Password must be at least 6 characters', 'error');
+    }
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pw,
+      options: {
+        data: { role: 'owner' }
+      }
+    });
+    btn.disabled = false;
+    if (error) return toast(error.message, 'error');
+    if (data.session) {
+      toast('Account created successfully! Welcome 🎉', 'success');
+    } else {
+      toast('Account created! You can now sign in.', 'success');
+      setAuthMode('login');
+    }
+  }
+}
+
+async function doLogout() {
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  await sb.auth.signOut();
+  currentUser = null; currentShop = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── NAV ────────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'analytics') loadAnalytics();
+  if (name === 'history') loadHistory();
+  if (name === 'settings') loadSettings();
+}
+
+// ── INIT AFTER LOGIN ───────────────────────────────────────
+async function initApp(user) {
+  if (!user) return;
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  // If Desktop App requested authentication bridge, notify it
+  try {
+    const sessionRes = await sb.auth.getSession();
+    const sess = sessionRes?.data?.session;
+    if (sess?.access_token && sess?.refresh_token) {
+      fetch('http://127.0.0.1:45678/auth-bridge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: sess.access_token,
+          refresh_token: sess.refresh_token
+        })
+      }).then(r => r.json()).then(data => {
+        if (data && data.ok) {
+          toast('🎉 Connected to PrintHub Desktop App! You can switch back to the desktop window.', 'success');
+        }
+      }).catch(() => {});
+    }
+  } catch (e) {}
+
+  // Load shop
+  try {
+    const { data: shop, error } = await sb.from('shops').select('*').eq('owner_id', user.id).maybeSingle();
+    if (!shop) {
+      // New user without a registered shop — display registration popup
+      const userDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+      if (userDisplayName && !document.getElementById('reg-name').value) {
+        document.getElementById('reg-name').value = `${userDisplayName}'s Print Shop`;
+      }
+      document.getElementById('register-modal').classList.remove('hidden');
+      return;
+    }
+    currentShop = shop;
+    document.getElementById('topbar-shop').textContent = shop.name;
+    document.getElementById('shop-status-select').value = shop.status || 'open';
+
+    await loadQueue();
+    await loadDayStats();
+    subscribeRealtime();
+  } catch (e) {
+    console.error('initApp error:', e);
+  }
+}
+
+// ── REGISTER SHOP ──────────────────────────────────────────
+async function registerShop() {
+  const btn = document.getElementById('btn-reg-shop');
+  const name = document.getElementById('reg-name').value.trim();
+  const addr = document.getElementById('reg-addr').value.trim();
+  const code = document.getElementById('reg-code').value.trim().toUpperCase().replace(/\s+/g, '-');
+
+  if (!name || !addr || !code) {
+    return toast('Please fill in all fields (Shop name, Address, and Code)', 'error');
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Registering shop…';
+  }
+
+  try {
+    // 1. Ensure we have an active authenticated user
+    let user = currentUser;
+    if (!user) {
+      const { data: userData } = await sb.auth.getUser();
+      user = userData?.user;
+      if (user) currentUser = user;
+    }
+
+    if (!user) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast('Session not found. Please sign in or refresh the page.', 'error');
+    }
+
+    // 2. Check if shop code is already in use
+    const { data: codeCheck } = await sb.from('shops').select('id').eq('shop_code', code).maybeSingle();
+    if (codeCheck) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast(`Shop code "${code}" is already taken. Please choose another code.`, 'error');
+    }
+
+    // 3. Fast insert directly into shops table
+    const { data, error } = await sb.from('shops').insert({
+      owner_id: user.id,
+      name,
+      address: addr,
+      shop_code: code,
+      status: 'open',
+      auto_print: false
+    }).select().single();
+
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create shop & Open Dashboard →'; }
+      return toast(error.message || 'Could not register shop', 'error');
+    }
+
+    // 4. Update profile role asynchronously
+    sb.from('profiles').update({ role: 'owner' }).eq('id', user.id).then(() => {}).catch(() => {});
+
+    // 5. Instantly close modal and activate dashboard
+    currentShop = data;
+    document.getElementById('register-modal').classList.add('hidden');
+    document.getElementById('topbar-shop').textContent = data.name;
+
+    toast('Shop registered! Welcome to PrintHub 🎉', 'success');
+
+    // 6. Load dashboard data in background
+    subscribeRealtime();
+    loadQueue().catch(console.error);
+    loadDayStats().catch(console.error);
+
+  } catch (err) {
+    console.error('Registration failed:', err);
+    toast(err.message || 'An unexpected error occurred during registration', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Create shop & Open Dashboard →';
+    }
+  }
+}
+
+// ── REALTIME ───────────────────────────────────────────────
+function subscribeRealtime() {
+  if (!currentShop) return;
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+
+  realtimeChannel = sb.channel(`shop-${currentShop.id}`)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'orders',
+      filter: `shop_id=eq.${currentShop.id}`
+    }, payload => {
+      toast(`New order: ${payload.new.file_name}`, 'info');
+      loadQueue();
+      loadDayStats();
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'orders',
+      filter: `shop_id=eq.${currentShop.id}`
+    }, payload => {
+      loadQueue();
+      loadDayStats();
+    })
+    .subscribe(status => {
+      const online = status === 'SUBSCRIBED';
+      document.getElementById('conn-dot').className = `conn-dot ${online ? 'online' : 'offline'}`;
+      document.getElementById('conn-label').textContent = online ? 'Connected' : 'Reconnecting…';
+    });
+}
+
+// ── QUEUE ──────────────────────────────────────────────────
+async function loadQueue() {
+  if (!currentShop) return;
+  const { data } = await sb.from('orders')
+    .select('*')
+    .eq('shop_id', currentShop.id)
+    .in('status', ['queued','downloading','printing','pending'])
+    .order('is_priority', { ascending: false })
+    .order('created_at', { ascending: true });
+
+  queueJobs = data || [];
+  renderQueue();
+  updateQueueStats();
+}
+
+function renderQueue() {
+  const el = document.getElementById('queue-list');
+  const printing = queueJobs.find(j => j.status === 'printing');
+  const pending = queueJobs.filter(j => j.status !== 'printing');
+
+  // Active job panel
+  renderActiveJob(printing);
+
+  if (!pending.length) {
+    el.innerHTML = `<div class="empty-queue"><div class="empty-icon">✅</div><div class="empty-title">Queue is empty</div><div class="empty-sub">New orders appear here in real time</div></div>`;
+    return;
+  }
+
+  el.innerHTML = '';
+  pending.forEach((job, idx) => {
+    const card = document.createElement('div');
+    card.className = `job-card${job.is_priority ? ' priority' : ''}`;
+    const copies = `${job.copies} cop${job.copies > 1 ? 'ies' : 'y'}`;
+    const color = job.color_mode === 'bw' ? 'B&W' : 'Colour';
+    const time = new Date(job.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const amt = job.amount_total ? `₹${(job.amount_total/100).toFixed(0)}` : '—';
+
+    card.innerHTML = `
+      <div class="job-top">
+        <div class="job-token">${job.token || '—'}</div>
+        <div class="job-info">
+          <div class="job-fname">${job.file_name}${job.is_priority ? '<span class="badge badge-priority">⚡ PRIORITY</span>' : ''}</div>
+          <div class="job-meta">${copies} · ${color} · ${job.paper_size} · ${job.sides}-sided · ${amt} · ${time}</div>
+          ${job.notes ? `<div class="job-meta" style="margin-top:3px;font-style:italic">📝 ${job.notes}</div>` : ''}
+        </div>
+        <div class="job-badge"><span class="badge badge-${job.status}">${job.status}</span></div>
+      </div>
+      <div class="job-actions">
+        <button class="btn btn-success btn-sm" onclick="markPrinting('${job.id}')">🖨 Print now</button>
+        <button class="btn btn-ghost btn-sm" onclick="markComplete('${job.id}')">✓ Mark done</button>
+        <button class="btn btn-danger btn-sm" onclick="markFailed('${job.id}')">✕ Fail</button>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+function renderActiveJob(job) {
+  const el = document.getElementById('active-job-panel');
+  if (!job) {
+    el.innerHTML = `
+      <div class="active-job-title">No active print</div>
+      <div class="empty-queue" style="padding:24px 0">
+        <div class="empty-icon" style="font-size:32px">💤</div>
+        <div class="empty-sub">Waiting for next job</div>
+      </div>`;
+    return;
+  }
+  const color = job.color_mode === 'bw' ? 'B&W' : 'Colour';
+  el.innerHTML = `
+    <div class="active-job-title">🖨 Printing now</div>
+    <div class="active-token-big">${job.token || '—'}</div>
+    <div class="active-file">${job.file_name}</div>
+    <div class="active-meta">${job.copies} cop${job.copies > 1 ? 'ies' : 'y'} · ${color} · ${job.paper_size}</div>
+    ${job.notes ? `<div class="active-meta" style="font-style:italic">📝 ${job.notes}</div>` : ''}
+    <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+    <button class="btn btn-success btn-full" style="margin-bottom:8px" onclick="markComplete('${job.id}')">✓ Mark as completed</button>
+    <button class="btn btn-danger btn-full" onclick="markFailed('${job.id}')">✕ Mark as failed</button>
+  `;
+}
+
+async function updateQueueStats() {
+  document.getElementById('stat-queued').textContent = queueJobs.filter(j => j.status !== 'printing').length;
+}
+
+async function loadDayStats() {
+  if (!currentShop) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('orders')
+    .select('status, amount_shop, amount_total')
+    .eq('shop_id', currentShop.id)
+    .gte('created_at', today);
+
+  const done = (data || []).filter(o => o.status === 'completed').length;
+  const failed = (data || []).filter(o => o.status === 'failed').length;
+  const rev = (data || []).filter(o => o.status === 'completed')
+    .reduce((s, o) => s + (o.amount_shop || 0), 0);
+
+  const elDone = document.getElementById('stat-done');
+  if (elDone) elDone.textContent = done;
+  const elFailed = document.getElementById('stat-failed');
+  if (elFailed) elFailed.textContent = failed;
+  const elRev = document.getElementById('stat-revenue');
+  if (elRev) elRev.textContent = `₹${(rev/100).toFixed(0)}`;
+}
+
+// ── ORDER ACTIONS ──────────────────────────────────────────
+async function markPrinting(id) {
+  await sb.from('orders').update({ status: 'printing' }).eq('id', id);
+  toast('Marked as printing', 'info');
+}
+
+async function markComplete(id) {
+  await sb.from('orders').update({ status: 'completed', payment_status: 'paid' }).eq('id', id);
+  toast('Order completed ✓', 'success');
+}
+
+async function markFailed(id) {
+  await sb.from('orders').update({ status: 'failed' }).eq('id', id);
+  toast('Order marked failed', 'error');
+}
+
+async function updateShopStatus(val) {
+  await sb.from('shops').update({ status: val }).eq('id', currentShop.id);
+  toast(`Shop status: ${val}`, 'info');
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────
+async function loadAnalytics() {
+  if (!currentShop) return;
+  const today = new Date().toISOString().split('T')[0];
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  const { data: all } = await sb.from('orders')
+    .select('status, amount_total, amount_shop, amount_platform, priority_fee, created_at')
+    .eq('shop_id', currentShop.id)
+    .gte('created_at', monthStart);
+
+  const completed = (all || []).filter(o => o.status === 'completed');
+  const todayDone = completed.filter(o => o.created_at.startsWith(today)).length;
+  const monthDone = completed.length;
+  const failed = (all || []).filter(o => o.status === 'failed').length;
+  const failRate = all?.length ? Math.round(failed / all.length * 100) : 0;
+  const shopRev = completed.reduce((s, o) => s + (o.amount_shop || 0), 0);
+  const platformRev = completed.reduce((s, o) => s + (o.amount_platform || 0), 0);
+  const priorityRev = completed.reduce((s, o) => s + (o.priority_fee || 0), 0);
+  const totalRev = completed.reduce((s, o) => s + (o.amount_total || 0), 0);
+
+  document.getElementById('an-today').textContent = todayDone;
+  document.getElementById('an-month').textContent = monthDone;
+  document.getElementById('an-rev').textContent = `₹${(shopRev/100).toFixed(0)}`;
+  document.getElementById('an-fail').textContent = `${failRate}%`;
+  document.getElementById('rb-shop').textContent = `₹${(shopRev/100).toFixed(0)}`;
+  document.getElementById('rb-platform').textContent = `₹${(platformRev/100).toFixed(0)}`;
+  document.getElementById('rb-priority').textContent = `₹${(priorityRev/100).toFixed(0)}`;
+  document.getElementById('rb-total').textContent = `₹${(totalRev/100).toFixed(0)}`;
+
+  // Bar chart — last 7 days
+  const bars = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('en-IN', { weekday: 'short' });
+    const count = completed.filter(o => o.created_at.startsWith(ds)).length;
+    bars.push({ label, count, isToday: i === 0 });
+  }
+  const max = Math.max(...bars.map(b => b.count), 1);
+  document.getElementById('bar-chart').innerHTML = bars.map(b => `
+    <div class="bar-wrap">
+      <div class="bar ${b.isToday ? 'today' : ''}" style="height:${Math.max(4, (b.count/max)*80)}px" title="${b.count} prints"></div>
+      <div class="bar-label">${b.label}</div>
+    </div>
+  `).join('');
+}
+
+// ── HISTORY ────────────────────────────────────────────────
+async function loadHistory() {
+  if (!currentShop) return;
+  const filter = document.getElementById('history-filter').value;
+  let query = sb.from('orders').select('*').eq('shop_id', currentShop.id).order('created_at', { ascending: false }).limit(100);
+  if (filter !== 'all') query = query.eq('status', filter);
+  const { data } = await query;
+
+  const tbody = document.getElementById('history-tbody');
+  if (!data?.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--gray)">No records found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(o => {
+    const amt = o.amount_total ? `₹${(o.amount_total/100).toFixed(0)}` : '—';
+    const dt = new Date(o.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    const color = o.color_mode === 'bw' ? 'B&W' : 'Colour';
+    return `<tr>
+      <td class="token-cell">${o.token || '—'}</td>
+      <td>${o.file_name}</td>
+      <td>${o.copies}× · ${color} · ${o.paper_size}</td>
+      <td>${amt}</td>
+      <td><span class="badge badge-${o.status}">${o.status}</span></td>
+      <td style="color:var(--gray)">${dt}</td>
+      <td>${o.status === 'failed' ? `<button class="btn btn-ghost btn-sm" onclick="markPrinting('${o.id}')">Reprint</button>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SETTINGS ───────────────────────────────────────────────
+async function loadSettings() {
+  if (!currentShop) return;
+  document.getElementById('s-shopname').textContent = currentShop.name;
+  document.getElementById('s-shopcode').textContent = currentShop.shop_code;
+  document.getElementById('s-shopaddr').textContent = currentShop.address;
+}
+
+async function saveSetting(key, val) {
+  await sb.from('shops').update({ [key]: val }).eq('id', currentShop.id);
+  currentShop[key] = val;
+  toast('Setting saved', 'success');
+}
+
+function toggleEditShop() {
+  const form = document.getElementById('edit-shop-form');
+  const visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    document.getElementById('edit-shopname').value = currentShop.name || '';
+    document.getElementById('edit-shopaddr').value = currentShop.address || '';
+  }
+}
+
+async function saveShopInfo() {
+  const name = document.getElementById('edit-shopname').value.trim();
+  const address = document.getElementById('edit-shopaddr').value.trim();
+  if (!name || !address) return toast('Fill in both fields', 'error');
+  const { error } = await sb.from('shops').update({ name, address }).eq('id', currentShop.id);
+  if (error) return toast(error.message, 'error');
+  currentShop.name = name;
+  currentShop.address = address;
+  document.getElementById('s-shopname').textContent = name;
+  document.getElementById('s-shopaddr').textContent = address;
+  document.getElementById('topbar-shop').textContent = name;
+  document.getElementById('edit-shop-form').style.display = 'none';
+  toast('Shop info updated!', 'success');
+}
+
+// ── AUTH STATE ─────────────────────────────────────────────
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    await initApp(session.user);
+  } else {
+    document.getElementById('app').classList.remove('visible');
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+});
+
+(async () => {
+  const { data } = await sb.auth.getSession();
+  if (data.session?.user) await initApp(data.session.user);
+})();
+</script>
+</body>
+</html>
